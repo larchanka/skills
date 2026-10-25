@@ -27,11 +27,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
+          cache-dependency-path: "requirements.txt"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-test.txt
+          pip install -r requirements.txt
 
       - name: Run codebase-context-generator tests
         run: python -m unittest discover -s codebase-context-generator/tests -p "test_*.py" -v
@@ -55,6 +56,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: "requirements.txt"
 
       - name: Install security scanners
         run: |
@@ -62,7 +64,7 @@ jobs:
           pip install pip-audit bandit
 
       - name: Scan dependencies for known CVEs (pip-audit)
-        run: pip-audit -r requirements-test.txt
+        run: pip-audit -r requirements.txt
 
       - name: Run Python SAST code security audit (bandit)
         run: bandit -r codebase-context-generator/ slack-cli/ yt-random-comment-picker/ -ll -x "*/tests/*"
