@@ -19,8 +19,6 @@ A Python-based Slack workspace helper that enables safe interaction with Slack u
 
 **Key philosophy**: All Slack operations go through approved Python scripts (in `./scripts/`) rather than direct CLI execution, ensuring safe operations and normalized output.
 
-**Author**: Mikhail Larchanka (@mikhail.larchanka)
-
 ### 2. [code-review](./code-review/SKILL.md)
 A comprehensive multi-axis code review framework that evaluates changes across five dimensions:
 
