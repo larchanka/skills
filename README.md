@@ -19,6 +19,8 @@ A Python-based Slack workspace helper that enables safe interaction with Slack u
 
 **Key philosophy**: All Slack operations go through approved Python scripts (in `./scripts/`) rather than direct CLI execution, ensuring safe operations and normalized output.
 
+**Author**: Mikhail Larchanka (@mikhail.larchanka)
+
 ### 2. [code-review](./code-review/SKILL.md)
 A comprehensive multi-axis code review framework that evaluates changes across five dimensions:
 
@@ -37,10 +39,32 @@ Uses a progressive investigation strategy (stages 0-4) from quick scans to full 
 
 Core focus areas: architecture evolution, business rule changes, data ownership, API compatibility, security/reliability, test coverage, and deployment implications.
 
+### 4. [agent-loop](./agent-loop/SKILL.md)
+Coordinates a multi-agent loop involving planning, development, review, and publishing sub-agents to implement and publish features test-first and with high standards compliance. The workflow includes:
+
+- **Planning Phase**: Analyze user request/specification, generate `tasks/plan.md` and `tasks/todo.md`, present for user approval
+- **Development Phase**: Implement tasks test-first using TDD, update task status as completed
+- **Review Phase**: Perform standard and spec audits on git diff, resolve findings, loop until 0 findings
+- **Publishing Phase**: Automate integration/deployment, commit using Conventional Commits, create GitHub PR
+
+Key constraint: The coordinator MUST NOT write implementation code - all code changes delegated to subagents.
+
+### 5. [manual-automation](./manual-automation/SKILL.md)
+Enables manual browser testing and automation using the Chrome DevTools MCP server. Covers the full workflow from port management through application launch, browser automation, login, and end-to-end testing. Includes port conflict handling, application launch sequences, login flows, E2E test execution with MCP tools, and cleanup procedures.
+
+### 6. [planning-and-task-breakdown](./planning-and-task-breakdown/SKILL.md)
+Decompose work into small, verifiable tasks with explicit acceptance criteria. Covers the planning process: entering plan mode, identifying dependency graphs, slicing vertically, writing tasks with description/acceptance criteria/verification/dependencies/files/scope, and ordering with checkpoints. Includes task sizing guidelines (XS-L) and red flags to watch for.
+
+### 7. [pull-request](./pull-request/SKILL.md)
+Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
+
+### 8. [tdd](./tdd/SKILL.md)
+Test-driven development reference covering the red→green→refactor loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, refactoring is not part of the loop).
+
 ## Usage
 
 Each skill is standalone - clone or use the specific skill you need. See the individual `SKILL.md` files for detailed documentation, setup instructions, and usage examples.
 
 ---
 
-*Repository contains 3 skills total.*
+*Repository contains 8 skills total.*
