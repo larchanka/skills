@@ -13,23 +13,27 @@ Or as a skill:
 """
 
 import json
+import os
 import random
 import sys
 import subprocess
+import tempfile
 from typing import List, Dict, Optional
 
 
-def download_comments(video_url: str, output_path: str = "/tmp/youtube_comments.info.json") -> Optional[Dict]:
+def download_comments(video_url: str, output_path: Optional[str] = None) -> Optional[Dict]:
     """
     Download comments from a YouTube video using yt-dlp.
     
     Args:
         video_url: YouTube video URL
-        output_path: Path to save the info.json file
+        output_path: Path to save the info.json file (defaults to system tempdir)
         
     Returns:
         Parsed info.json data if successful, None otherwise
     """
+    if output_path is None:
+        output_path = os.path.join(tempfile.gettempdir(), "youtube_comments.info.json")
     try:
         # Use yt-dlp to download comments and video metadata
         # --skip-download avoids downloading the video itself

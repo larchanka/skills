@@ -1,4 +1,4 @@
-name: Python Tests
+name: CI & Security
 
 on:
   push:
@@ -41,3 +41,28 @@ jobs:
 
       - name: Run yt-random-comment-picker tests
         run: python -m unittest discover -s yt-random-comment-picker/tests -p "test_*.py" -v
+
+  security:
+    name: Security & Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install security scanners
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit bandit
+
+      - name: Scan dependencies for known CVEs (pip-audit)
+        run: pip-audit -r requirements-test.txt
+
+      - name: Run Python SAST code security audit (bandit)
+        run: bandit -r codebase-context-generator/ slack-cli/ yt-random-comment-picker/ -ll -x "*/tests/*"
