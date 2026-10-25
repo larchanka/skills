@@ -56,7 +56,7 @@ Decompose work into small, verifiable tasks with explicit acceptance criteria. C
 ### 7. [pull-request](./pull-request/SKILL.md)
 Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
 
-### 8. [tdd](./tdd/SKILL.md)
+### 8. [test-driven-development](./test-driven-development/SKILL.md)
 Test-driven development reference covering the red→green→refactor loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, refactoring is not part of the loop).
 
 ## Usage

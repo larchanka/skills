@@ -1,6 +1,8 @@
 ---
 name: agent-loop
 description: Orchestrates a multi-agent loop involving planning, development, review, and publishing sub-agents to implement and publish features test-first and with high standards compliance.
+metadata:
+   version: 1.0.0
 ---
 
 # Multi-Agent Iteration Loop
@@ -78,7 +80,7 @@ To ensure execution consistency, each sub-agent in this loop is dedicated to exe
 *   **Planning Sub-Agent**:
     *   Primary Skill: [planning-and-task-breakdown](../planning-and-task-breakdown/SKILL.md) (used to analyze dependencies, partition slices, and output plans).
 *   **Development Sub-Agent**:
-    *   Primary Skill: [tdd](../tdd/SKILL.md) (drives test-first RED-GREEN loops at public boundaries).
+    *   Primary Skill: [test-driven-development](./test-driven-development/SKILL.md) (drives test-first RED-GREEN loops at public boundaries).
 *   **Review Sub-Agent**:
     *   Primary Skill: [code-review](../code-review/SKILL.md) (performs two-axis checks for standard compliance and specification compliance).
 *   **Publisher Sub-Agent**:

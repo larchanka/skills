@@ -4,6 +4,8 @@ description: >-
   Interact with Slack workspaces safely via dedicated Python helper scripts.
   Allows reading unread messages, channels, threads, searching messages, sending
   messages, and reacting with emojis without direct CLI execution.
+metadata:
+   version: 1.0.0
 ---
 
 # Slack CLI Helper Skill

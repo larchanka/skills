@@ -1,6 +1,8 @@
 ---
 name: manual-automation
 description: Manual browser testing and automation using Chrome DevTools MCP server. Handles port management, app launch, browser automation, login, and end-to-end testing.
+metadata:
+   version: 1.0.0
 ---
 
 # Manual Browser Automation

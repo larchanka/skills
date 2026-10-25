@@ -1,6 +1,8 @@
 ---
 name: project-change-intelligence
 description: Progressively investigate PRs, commits, releases, and project evolution. Start with a lightweight assessment, dynamically deepen analysis based on complexity and risk, use subagents for independent investigations, and maintain evidence-backed project knowledge.
+metadata:
+   version: 1.0.0
 ---
 
 # Project Change Intelligence
