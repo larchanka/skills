@@ -62,10 +62,13 @@ Test-driven development reference covering the red→green→refactor loop. Defi
 ### 9. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
 Downloads YouTube video comments, filters to unique authors, and randomly selects one comment to return. Uses `yt-dlp` to fetch comments and Python's `random` module for selection.
 
+### 10. [codebase-context-generator](./codebase-context-generator/SKILL.md)
+Generates comprehensive AI context, `AGENTS.md`, and structured documentation in a `context/` directory for any brownfield codebase using Tree-sitter AST extraction, dependency analysis, predefined Python scripts, and orchestrated subagents.
+
 ## Usage
 
 Each skill is standalone - clone or use the specific skill you need. See the individual `SKILL.md` files for detailed documentation, setup instructions, and usage examples.
 
 ---
 
-*Repository contains 8 skills total.*
+*Repository contains 10 skills total.*
