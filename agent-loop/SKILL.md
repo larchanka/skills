@@ -80,7 +80,7 @@ To ensure execution consistency, each sub-agent in this loop is dedicated to exe
 *   **Planning Sub-Agent**:
     *   Primary Skill: [planning-and-task-breakdown](../planning-and-task-breakdown/SKILL.md) (used to analyze dependencies, partition slices, and output plans).
 *   **Development Sub-Agent**:
-    *   Primary Skill: [test-driven-development](./test-driven-development/SKILL.md) (drives test-first RED-GREEN loops at public boundaries).
+    *   Primary Skill: [test-driven-development](../test-driven-development/SKILL.md) (drives test-first RED-GREEN loops at public boundaries).
 *   **Review Sub-Agent**:
     *   Primary Skill: [code-review](../code-review/SKILL.md) (performs two-axis checks for standard compliance and specification compliance).
 *   **Publisher Sub-Agent**:
