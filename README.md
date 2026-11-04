@@ -12,7 +12,7 @@ Coordinates a multi-agent loop involving planning, development, review, and publ
 - **Review Phase**: Perform standard and spec audits on git diff, resolve findings, loop until 0 findings
 - **Publishing Phase**: Automate integration/deployment, commit using Conventional Commits, create GitHub PR
 
-Key constraint: The coordinator MUST NOT write implementation code - all code changes delegated to subagents.
+Key constraint: Pure orchestration only — the coordinator MUST NOT read codebase files or write code. It passes tasks directly to subagents and forces them to load and execute their corresponding workspace skills.
 
 ### 2. [code-review](./code-review/SKILL.md)
 A comprehensive multi-axis code review framework that evaluates changes across five dimensions:

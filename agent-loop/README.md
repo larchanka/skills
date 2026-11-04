@@ -6,10 +6,13 @@ An autonomous, multi-agent coordination skill that orchestrates four dedicated A
 
 ## Overview & Core Philosophy
 
-### Philosophy: Strict Separation of Concerns
-The fundamental principle of `agent-loop` is **role isolation**:
-- **The Coordinator Agent**: Acts strictly as the project manager and workflow orchestrator. The coordinator **MUST NOT** directly write implementation code, create source files, or edit application logic.
-- **The Subagents**: Specialized agents spawned for distinct phases of the software development lifecycle (SDLC), operating under dedicated skill playbooks.
+### Philosophy: Strict Separation of Concerns & Pure Orchestration
+The fundamental principles of `agent-loop` are **role isolation** and **pure orchestration**:
+- **The Coordinator Agent**: Acts strictly as the project manager and workflow orchestrator.
+  - **Zero Task-Related Actions**: The coordinator **MUST NOT** read codebase files, search or grep code, explore project architecture, or inspect git diffs. All reading, implementation, testing, and reviewing are delegated strictly to subagents.
+  - **Zero Code Changes**: The coordinator **MUST NOT** write code, create source files, or edit application logic.
+  - **Force Skill Loading (No Instruction Inlining)**: The coordinator **MUST NOT** summarize, fragment, or paraphrase skill instructions in subagent prompts. Instead, it explicitly instructs each subagent to read and execute its designated skill (`SKILL.md`).
+- **The Subagents**: Specialized agents spawned for distinct phases of the software development lifecycle (SDLC), required to load and operate under dedicated workspace skill playbooks (`planning-and-task-breakdown`, `test-driven-development`, `refactoring`, `code-review`, and `pull-request`).
 
 By enforcing strict boundaries, the loop eliminates common single-agent failure modes—such as skipping unit tests, rationalizing sloppy implementations, or opening half-finished pull requests without quality audits.
 
@@ -30,8 +33,8 @@ graph TD
     Plan --> SavePlan["Generate tasks/plan.md & tasks/todo.md"]
     SavePlan --> ApprPlan{"User Approval?"}
     ApprPlan -- "No / Revisions" --> Plan
-    ApprPlan -- "Yes (Proceed)" --> Dev["2. Development Subagent<br/>(test-driven-development)"]
-    Dev --> ImpTask["Implement Next Task via TDD<br/>(Red -> Green -> Refactor)"]
+    ApprPlan -- "Yes (Proceed)" --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)"]
+    Dev --> ImpTask["Implement Next Task via TDD & Quality Gates"]
     ImpTask --> Rev["3. Review Subagent<br/>(code-review)"]
     Rev --> Check{"Any Findings?<br/>(Standards / Spec / Bugs)"}
     Check -- "Yes (Findings > 0)" --> Dev
@@ -45,17 +48,23 @@ graph TD
 ### The 4 Phases
 
 1. **Planning Phase (`planning` subagent)**
-   - Analyzes requirements, explores codebase architecture, and identifies dependency trees.
-   - Decomposes the initiative into small, vertically sliced tasks.
+   - Coordinator passes user request/spec directly without inspecting or reading codebase files.
+   - Subagent is mandated to load and follow `planning-and-task-breakdown/SKILL.md`.
+   - Explores codebase architecture, decomposes the initiative into small, vertically sliced tasks.
    - Produces `tasks/plan.md` (architectural design) and `tasks/todo.md` (actionable checklist) for user confirmation.
 2. **Development Phase (`development` subagent)**
-   - Picks the next unchecked task `[ ]` from `tasks/todo.md`.
-   - Adheres strictly to **Test-Driven Development (TDD)**: writes a failing unit test first, writes minimal code to pass, verifies compilation, and updates task status to `[x]`.
+   - Coordinator delegates the next incomplete task from `tasks/todo.md`.
+   - Subagent is mandated to load and follow `test-driven-development/SKILL.md` (test-first Red-Green cycle) and `refactoring/SKILL.md` (automated quality gates: CRAP < 10, duplication elimination, mutation killing).
+   - Writes tests first, implements minimal code to pass, refactors under quality gates, and marks task `[x]`.
 3. **Review Phase (`review` subagent)**
+   - Coordinator triggers the subagent without inspecting diffs itself.
+   - Subagent is mandated to load and follow `code-review/SKILL.md`.
    - Inspects `git diff` against five review axes: Correctness, Readability, Architecture, Security, and Performance.
-   - If findings or standard violations exist, details are fed directly back to the development agent for remediation before moving forward.
+   - Findings are routed directly back to the development subagent for remediation.
 4. **Publishing Phase (`publisher` subagent)**
-   - Verifies `git status` clean state, validates all test suites, commits following [Conventional Commits](https://www.conventionalcommits.org/), pushes branch, and opens a GitHub Pull Request via `gh pr create`.
+   - Coordinator delegates publication once all tasks in `tasks/todo.md` pass review.
+   - Subagent is mandated to load and follow `pull-request/SKILL.md`.
+   - Cleans worktree, verifies test suite, commits following Conventional Commits, pushes branch, and opens a GitHub Pull Request via `gh pr create`.
 
 ---
 
@@ -125,38 +134,35 @@ Ensure tasks are tracked in tasks/plan.md and tasks/todo.md, and open a PR when 
 
 ### Coordinator Execution Contract
 
-The coordinator executes the loop step-by-step:
+The coordinator executes pure workflow orchestration without inspecting codebase files:
 
 1. **Step 1: Plan Generation**
-   - Coordinator invokes `planning` subagent.
-   - Files created:
+   - Coordinator invokes `planning` subagent, passing raw user request/spec directly.
+   - Mandates the subagent load and execute `planning-and-task-breakdown/SKILL.md`.
+   - Files created by subagent:
      ```
      tasks/
      ├── plan.md   # Architectural breakdown and design rationale
      └── todo.md   # [ ] Task 1, [ ] Task 2, [ ] Task 3
      ```
-   - Coordinator pauses to confirm acceptance with the user.
+   - Coordinator presents plan summary to the user for approval.
 
 2. **Step 2: Task-by-Task TDD Implementation**
-   - Coordinator selects Task 1 and passes instructions to the `development` subagent.
-   - Development agent writes `test_ratelimit.ts`, confirms failure (Red), implements `ratelimit.ts`, confirms pass (Green), and marks Task 1 `[x]`.
+   - Coordinator selects the next incomplete task from `tasks/todo.md`.
+   - Invokes `development` subagent, mandating it to load and execute `test-driven-development/SKILL.md` and `refactoring/SKILL.md`.
+   - Subagent implements test-first, refactors under quality gates (CRAP < 10, clone checks, mutation tests), and marks task `[x]`.
 
 3. **Step 3: Quality Gate Review**
-   - Coordinator triggers `review` subagent on the git diff.
-   - If findings are reported (e.g. "Missing boundary check for IPv6 addresses"), coordinator prompts `development` subagent to address feedback.
-   - When 0 findings remain, the loop advances to Task 2.
+   - Coordinator triggers `review` subagent, mandating it to load and execute `code-review/SKILL.md`.
+   - Subagent audits git diff against the 5 quality axes.
+   - If findings are reported, coordinator routes the reviewer's report directly to `development` subagent to address.
+   - When 0 findings remain, the loop advances to the next task in `tasks/todo.md`.
 
 4. **Step 4: Publishing Pull Request**
-   - Once all tasks in `tasks/todo.md` are `[x]`, coordinator delegates to `publisher` subagent.
-   - The publisher executes:
-     ```bash
-     git checkout -b feat/sliding-window-rate-limiter
-     git add src/ tests/
-     git commit -m "feat(api): implement sliding-window rate limiting middleware"
-     git push -u origin feat/sliding-window-rate-limiter
-     gh pr create --title "feat(api): sliding-window rate limiter" --body "..."
-     ```
-   - The coordinator reports the pull request URL back to the user.
+   - Once all tasks in `tasks/todo.md` are marked `[x]`, coordinator invokes `publisher` subagent.
+   - Mandates the subagent load and execute `pull-request/SKILL.md`.
+   - Subagent cleans worktree, validates tests, commits via Conventional Commits, pushes branch, and executes `gh pr create`.
+   - The coordinator shares the published pull request URL with the user.
 
 ---
 

@@ -2,94 +2,115 @@
 name: agent-loop
 description: Orchestrates a multi-agent loop involving planning, development, review, and publishing sub-agents to implement and publish features test-first and with high standards compliance.
 metadata:
-   version: 1.1.0
+   version: 1.2.0
 ---
 
 # Multi-Agent Iteration Loop
 
-This skill coordinates four independent agents (`planning`, `development`, `review`, and `publisher`) in a continuous loop to deliver and publish spec-compliant, standard-abiding features.
-
-## The Overarching Discipline
-Every time the loop makes a change, follow:
-1. **First Make it Work:** Minimal test-driven changes, single decisions in single places, laziness protocol.
-2. **Then Make it Right:** Eliminate structural duplication, keep CRAP < 10, kill surviving mutants, apply architecture disciplines.
-3. **Follow Practice:** Keep a log, guard context window, clean worktrees, commit in small ordered increments.
+This skill coordinates four independent subagents (`planning`, `development`, `review`, and `publisher`) in a continuous loop to deliver and publish spec-compliant, standard-abiding features.
 
 ```mermaid
 graph TD
-    Start["User Request / Spec"] --> Plan["1. Planning Subagent"]
-    Plan --> SavePlan["Generate tasks/plan.md & todo.md"]
+    Start["User Request / Spec"] --> Plan["1. Planning Subagent<br/>(planning-and-task-breakdown)"]
+    Plan --> SavePlan["Generate tasks/plan.md & tasks/todo.md"]
     SavePlan --> ApprPlan{"User Approval?"}
     ApprPlan -- No --> Plan
-    ApprPlan -- Yes --> Dev["2. Development Subagent"]
-    Dev --> ImpTask["Implement Next Task via TDD"]
-    ImpTask --> Rev["3. Review Subagent"]
+    ApprPlan -- Yes --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)"]
+    Dev --> ImpTask["Implement Next Task via TDD & Quality Gates"]
+    ImpTask --> Rev["3. Review Subagent<br/>(code-review)"]
     Rev --> Check{"Any Findings?"}
     Check -- Yes (Bug / Smell) --> Dev
-    Check -- No --> CheckMore{"More Tasks?"}
+    Check -- No --> CheckMore{"More Tasks in todo.md?"}
     CheckMore -- Yes --> Dev
-    CheckMore -- No --> Pub["4. Publisher Subagent"]
+    CheckMore -- No --> Pub["4. Publisher Subagent<br/>(pull-request)"]
     Pub --> OpenPR["Create Branch, Commit & gh pr create"]
     OpenPR --> Done["Done - Pull Request Published"]
 ```
 
-## Workflow Execution Steps
+## Coordinator Constraints & Disciplines
 
 > [!IMPORTANT]
-> **Coordinator Constraint**: The coordinator agent executing this skill MUST NOT write implementation code, create source files, or modify files in the codebase directly during the development phase. The coordinator is solely responsible for planning, orchestrating the loop, conducting code reviews, and managing publishing. All code changes and task implementations MUST be delegated to the spawned subagents.
+> **Strict Pure Orchestration**:
+> 1. **Zero Task-Related Actions**: The orchestrator MUST NOT read codebase files, search or grep code, explore project architecture, or inspect git diffs. All exploration, reading, implementation, testing, and reviewing belong strictly to subagents.
+> 2. **Zero Code Changes**: The orchestrator MUST NOT write code, create source files, edit application logic, or run execution commands.
+> 3. **Pass Raw Task Context Directly**: Pass user requests, specs, and file paths directly to the subagents without pre-reading, summarizing, or distilling them.
+> 4. **Force Skill Loading (No Instruction Inlining)**: The orchestrator MUST NOT summarize, fragment, or paraphrase skill instructions in subagent prompts. Instead, the orchestrator MUST explicitly instruct each subagent to read and execute its designated skill (`SKILL.md`).
+
+## Workflow Execution Steps
 
 ### 1. Planning Phase
-- **Spawn the `planning` subagent** to read the user request/specification and codebase structure.
-- The `planning` agent will output `tasks/plan.md` (architecture, design, tasks) and `tasks/todo.md` (checkbox todo list).
-- Once the plan is saved, present it to the user for feedback and approval.
+- **Action**: Spawn the `planning` subagent using `invoke_subagent`. Pass the user's raw feature request/specification verbatim.
+- **Skill Mandate**: Force the subagent to load and follow [planning-and-task-breakdown](../planning-and-task-breakdown/SKILL.md).
+- **Subagent Prompt Directive**:
+  ```text
+  You are the Planning Subagent for agent-loop.
+  MANDATORY: Your very first step is to read and strictly execute the skill at `planning-and-task-breakdown/SKILL.md` (or skill `planning-and-task-breakdown`).
+  Do NOT rely on abbreviated instructions or skip reading the skill.
+  Explore the codebase, analyze requirements, and produce:
+  1. `tasks/plan.md` (architectural design and breakdown)
+  2. `tasks/todo.md` (checkbox checklist of implementation tasks)
+  Return the plan summary and todo list to the coordinator when done.
+
+  <USER_REQUEST>
+  {RAW_USER_REQUEST_OR_SPEC}
+  </USER_REQUEST>
+  ```
+- **Handoff**: Once the planning subagent returns `tasks/plan.md` and `tasks/todo.md`, present the plan to the user for approval before starting implementation.
 
 ### 2. Development Phase (Task Implementation)
-- **Select the first incomplete task** from `tasks/todo.md`.
-- **Spawn the `development` subagent** to implement that task in two parts:
-  - **Part A: First Make it Work (`test-driven-development`)**:
-    - Write a failing unit test first. See it fail for the expected reason.
-    - Implement only the minimal code to pass the test.
-    - Laziness protocol: ship the smallest edit that solves the problem.
-  - **Part B: Then Make it Right (`refactoring`)**:
-    - Pin behavior and run automated quality gates:
-      - `risk-gate`: ensure function CRAP < 10.
-      - `clone-check`: eliminate duplication >= 0.8.
-      - `mutant-gate`: kill surviving mutants; delete dead code.
-    - Apply domain and boundary discipline (pure functions, unrepresentable illegal states).
-  - Update the status of the task in `tasks/todo.md` to completed `[x]`.
+- **Action**: Check which task is next in `tasks/todo.md`. Spawn or message the `development` subagent to implement that single task.
+- **Skill Mandate**: Force the subagent to load and follow [test-driven-development](../test-driven-development/SKILL.md) and [refactoring](../refactoring/SKILL.md).
+- **Subagent Prompt Directive**:
+  ```text
+  You are the Development Subagent for agent-loop.
+  MANDATORY: You must execute this task using two designated workspace skills in order. First read their complete SKILL.md files:
+  1. `test-driven-development/SKILL.md` (for the test-first Red-Green cycle at public boundaries)
+  2. `refactoring/SKILL.md` (for automated quality gates: CRAP < 10, duplication elimination, mutation killing)
+  Do NOT skip reading these skills. Strictly follow their protocols.
+
+  Task to implement:
+  {CURRENT_TASK_DESCRIPTION}
+
+  References:
+  - Plan: tasks/plan.md
+  - Checklist: tasks/todo.md
+
+  When done, mark the task as completed [x] in `tasks/todo.md` and report a concise summary of the changes made and tests passed.
+  ```
 
 ### 3. Review Phase (Quality Gates)
-- **Spawn the `review` subagent** to perform standard and spec audits on the branch's git diff.
-- The `review` agent outputs findings under `## Standards` and `## Spec` headers.
+- **Action**: Spawn the `review` subagent to review the git diff for the changes introduced.
+- **Skill Mandate**: Force the subagent to load and follow [code-review](../code-review/SKILL.md).
+- **Subagent Prompt Directive**:
+  ```text
+  You are the Review Subagent for agent-loop.
+  MANDATORY: Your very first step is to read and strictly execute the skill at `code-review/SKILL.md`.
+  Audit the current git diff across the 5 axes (Correctness, Readability, Architecture, Security, Performance) and quality gates.
+  Output your findings categorized under `## Standards` and `## Spec` headers.
+  Report whether the review passes with 0 findings or list any actionable findings to remediate.
+  ```
 - **Evaluate results**:
-  - **If there are findings** (e.g., hard violations or baseline smells):
-    - Send a message to the `development` subagent containing the reviewer's report.
-    - Instruct the developer to resolve the bugs or smells.
-    - **Attack the Premise Protocol:** If two fixes that share one premise fail the same gate:
-      1. Write that premise in one sentence.
-      2. Count which actors hold the imbalance.
-      3. Remove the assignment.
-      4. Do not start another fix until this diagnosis is written down.
-    - Rerun the `review` agent once the developer has updated the branch.
-  - **If there are 0 findings**:
-    - Check `tasks/todo.md` for the next incomplete task.
-    - If tasks remain, loop back to **Step 2**.
-    - If all tasks are completed, proceed to **Step 4**.
+  - **If there are findings**: Pass the reviewer's findings directly back to the `development` subagent with instructions to address them. Re-run the `review` subagent once the developer has remediated the issues.
+  - **If there are 0 findings**: Advance to the next task in `tasks/todo.md` (back to Step 2). If all tasks are completed `[x]`, proceed to Step 4.
 
 ### 4. Publishing Phase (Deployment Gate)
-- **Spawn the `publisher` subagent** to automate the integration and deployment lifecycle.
-- The `publisher` agent must:
-  - Perform worktree cleanup (safe removal of temporary files, confirm no active processes need them).
-  - Verify `git status` and stage all changed files.
-  - Commit files using the Conventional Commits syntax and push to origin.
-  - Execute `gh pr create` with standard metadata titles/descriptions to open the GitHub Pull Request.
-  - Return the direct URL link to the Pull Request.
+- **Action**: Spawn the `publisher` subagent to finalize, commit, push, and create the PR.
+- **Skill Mandate**: Force the subagent to load and follow [pull-request](../pull-request/SKILL.md).
+- **Subagent Prompt Directive**:
+  ```text
+  You are the Publisher Subagent for agent-loop.
+  MANDATORY: Your very first step is to read and strictly execute the skill at `pull-request/SKILL.md`.
+  Perform worktree cleanup, stage files, commit using Conventional Commits, push the feature branch to origin, and run `gh pr create` with clear titles and descriptions.
+  Return the final Pull Request URL.
+  ```
+- **Handoff**: Provide the user with the direct link to the published Pull Request.
 
 ## Practice Guidelines
 
-- **Keep a Log:** Keep a log of every action you take and the reason you took it. Report that log upon completion of the loop.
-- **Guard the Context Window:** Keep the coordinator thread small. Delegate heavy work and analysis to subagents, retaining only concise summaries in the main thread.
-- **Worktree Cleanup:** Find what is safe to remove, confirm nothing still in use needs it, then reclaim disk. Uncommitted work waits for an explicit user decision.
+- **Zero Inspection by Coordinator**: The coordinator thread stays clean and minimal. Never load or read application source files in the orchestrator session.
+- **Pass Pure Payloads**: Hand off unedited user instructions and artifacts directly to subagents.
+- **Strict Skill Enforcement**: Subagents have rich, detailed instructions in their respective skill folders. Force subagents to read their `SKILL.md` instead of inlining summarized versions.
+- **Keep a Log**: Track workflow transitions and reasons in a lightweight orchestrator log.
 
 ## Exit Criteria
 - All tasks in `tasks/todo.md` are marked `[x]`.
@@ -98,18 +119,11 @@ graph TD
 - Quality gates (`risk-gate`, `clone-check`, `mutant-gate`) pass without violations.
 - The `publisher` agent has successfully pushed and opened a GitHub Pull Request, sharing its URL.
 
-## Sub-Agent Skill References
+## Sub-Agent Skill Directory Mapping
 
-To ensure execution consistency, each sub-agent in this loop is dedicated to executing a specific workspace skill. They must load and re-use the following guides:
-
-*   **Planning Sub-Agent**:
-    *   Primary Skill: [planning-and-task-breakdown](../planning-and-task-breakdown/SKILL.md) (analyzes dependencies, partitions vertical slices, foundational thinking).
-*   **Development Sub-Agent**:
-    *   Primary Skills:
-        *   [test-driven-development](../test-driven-development/SKILL.md) (drives test-first RED-GREEN loops at public boundaries).
-        *   [refactoring](../refactoring/SKILL.md) (enforces CRAP < 10, duplication < 0.8, mutation killing).
-*   **Review Sub-Agent**:
-    *   Primary Skill: [code-review](../code-review/SKILL.md) (performs audits across the 5 axes and verifies quality gates).
-*   **Publisher Sub-Agent**:
-    *   Primary Skill: [pull-request](../pull-request/SKILL.md) (automates worktree cleanup, commits, pushes, and GitHub CLI PR creation).
-
+| Sub-Agent | Primary Skills | Skill Path |
+| :--- | :--- | :--- |
+| **Planning Sub-Agent** | `planning-and-task-breakdown` | [planning-and-task-breakdown](../planning-and-task-breakdown/SKILL.md) |
+| **Development Sub-Agent** | `test-driven-development`<br/>`refactoring` | [test-driven-development](../test-driven-development/SKILL.md)<br/>[refactoring](../refactoring/SKILL.md) |
+| **Review Sub-Agent** | `code-review` | [code-review](../code-review/SKILL.md) |
+| **Publisher Sub-Agent** | `pull-request` | [pull-request](../pull-request/SKILL.md) |
