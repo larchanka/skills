@@ -2,7 +2,7 @@
 name: planning-and-task-breakdown
 description: Breaks work into ordered tasks. Use when you have a spec or clear requirements and need to break work into implementable tasks. Use when a task feels too large to start, when you need to estimate scope, or when parallel work is possible.
 metadata:
-   version: 1.0.0
+   version: 1.1.0
 ---
 
 # Planning and Task Breakdown
@@ -33,6 +33,19 @@ Before writing any code, operate in read-only mode:
 - Note risks and unknowns
 
 **Do NOT write code during planning.** The output is a plan document saved to `tasks/plan.md` and a task list saved to `tasks/todo.md`, not implementation.
+
+#### Foundational Thinking
+- **Get the data shape right before you write the logic.** Form precedes function; stable data models make business logic clean and straightforward.
+- **Do first whatever helps every later phase.** Prioritize foundational models, schemas, and shared types.
+- **Concurrency discipline:** If a concurrent writer would matter, do not share state.
+
+#### Redesign From First Principles
+- **Do not bolt a new requirement onto the old design.**
+- Ask what you would have built if it had been there from the start, think that through, and plan to deliver it in clean, incremental pieces.
+
+#### Build the Lever
+- If the work is not obvious at a glance, plan to build the tool that does it.
+- Do one unit by hand first, then make the tool match that unit.
 
 ### Step 2: Identify the Dependency Graph
 
@@ -106,6 +119,10 @@ Each task follows this structure:
 ```
 
 ### Step 5: Order and Checkpoint
+
+#### Sequence Work into Verifiable Units
+* **Finish one small unit and check it. Then start the next.** Never batch multiple unverified tasks together.
+* **Outcome-Oriented Execution:** Aim at the end state you can check. A break in the middle is allowed when you planned it and can undo it.
 
 Arrange tasks so that:
 

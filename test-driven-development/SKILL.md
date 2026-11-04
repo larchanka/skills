@@ -2,7 +2,7 @@
 name: test-driven-development
 description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
 metadata:
-   version: 1.0.0
+   version: 1.1.0
 ---
 
 # Test-Driven Development
@@ -13,7 +13,9 @@ When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and 
 
 ## What a good test is
 
-Tests verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't. A good test reads like a specification — "user can checkout with valid cart" tells you exactly what capability exists — and survives refactors because it doesn't care about internal structure.
+Tests verify behavior through public interfaces, not implementation details. The test calls the code the way its user does and checks the result that user would see. Code can change entirely; tests shouldn't. A good test reads like a specification — "user can checkout with valid cart" tells you exactly what capability exists — and survives refactors because it doesn't care about internal structure.
+
+**The "Returned Nothing" Litmus Test:** If the test would still pass when every function returned nothing, throw it out.
 
 See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
 
@@ -31,8 +33,22 @@ Ask: "What's the public interface, and which seams should we test?"
 - **Tautological** — the assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so it passes by construction and can never disagree with the code. Expected values must come from an independent source of truth — a known-good literal, a worked example, the spec.
 - **Horizontal slicing** — writing all tests first, then all implementation. Bulk tests verify _imagined_ behavior: you test the _shape_ of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in **vertical slices** instead — one test → one implementation → repeat, each test a **tracer bullet** that responds to what the last cycle taught you.
 
+## Laziness Protocol
+
+- **One decision lives in one place.** Keep single sources of truth.
+- **Ship the smallest edit that solves the problem.**
+- **Subtract before you add.** Take complexity out before you add anything.
+
+## Fixing Root Causes
+
+- **Reproduce it first.** Write a failing test demonstrating the bug before touching any code.
+- **Fix the cause.** Resolve the underlying defect.
+- **A guard that only hides the crash is not a fix.** Never slap on defensive null checks or silent try/excepts that mask root cause bugs.
+
 ## Rules of the loop
 
-- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
+- **Red before green.** Write the failing test before you change the code. See it fail for the exact reason you expect.
+- **Make the smallest change that makes it pass.** Don't anticipate future tests or add speculative features.
+- **Honest testing.** If an honest test is impractical, do not write a bad one.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
-- **Refactoring is not part of the loop.** It belongs to the review stage (see the `code-review` skill), not the red → green implementation cycle.
+- **Refactoring ("Then Make it Right").** Restructuring and quality gating are separated from the Red-Green loop: once green, transition to the `refactoring` skill to pin, clean up duplication, enforce CRAP < 10, and eliminate mutants.

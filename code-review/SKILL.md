@@ -2,7 +2,7 @@
 name: code-review
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 metadata:
-   version: 1.0.0
+   version: 1.1.0
 ---
 
 # Code Review and Quality
@@ -53,8 +53,11 @@ Can another engineer (or agent) understand this code without the author explaini
 Does the change fit the system's design?
 
 - Does it follow existing patterns or introduce a new one? If new, is it justified?
-- Does it maintain clean module boundaries?
-- Is there code duplication that should be shared?
+- **Model the domain:** Does the domain structure make illegal states impossible to represent? Is there a clear glossary of domain terms? If existing code is already clear and local, leave it.
+- **Boundary discipline:** Is outside data checked/parsed where it enters? Inside boundaries, is it trusted? Is core business logic isolated in pure functions?
+- **Type system discipline:** Are illegal values impossible to write? Is external data parsed once at ingestion? Are compiler or linter errors/warnings silenced (never allow `@ts-ignore`, `# noqa`, or compiler suppression without explicit justification)?
+- **Idempotency:** Are state-mutating operations idempotent? Will running an operation twice or recovering after a crash halfway through leave the system in the same consistent state?
+- **Shared state & concurrency:** If components do not need the same mutable state, does each have its own? If they do share state, is there only a single writer enforced by structure?
 - Are dependencies flowing in the right direction (no circular dependencies)?
 - Is the abstraction level appropriate (not over-engineered, not too coupled)?
 
@@ -303,6 +306,11 @@ Part of code review is dependency review:
 - [ ] No unbounded operations
 - [ ] Pagination on list endpoints
 
+### Quality Gates (Automated Metrics)
+- [ ] `risk-gate`: All functions evaluated have CRAP < 10 (split or tested appropriately)
+- [ ] `clone-check`: Zero duplicate code blocks with structural similarity >= 0.8
+- [ ] `mutant-gate`: Zero surviving mutants on changed units (mutation testing passes)
+
 ### Verification
 - [ ] Tests pass
 - [ ] Build succeeds
@@ -314,6 +322,7 @@ Part of code review is dependency review:
 ```
 ## See Also
 
+- For refactoring rules, CRAP formulas, duplication, and mutation gates, see the `refactoring` skill
 - For detailed security review guidance, see `references/security-checklist.md`
 - For performance review checks, see `references/performance-checklist.md`
 

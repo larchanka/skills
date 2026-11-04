@@ -44,7 +44,15 @@ Core focus areas: architecture evolution, business rule changes, data ownership,
 ### 7. [pull-request](./pull-request/SKILL.md)
 Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
 
-### 8. [slack-cli](./slack-cli/SKILL.md)
+### 8. [refactoring](./refactoring/SKILL.md)
+Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior. Includes automated quality-gate scripts in `scripts/`:
+- **`risk_gate.py`**: Enforces function CRAP score < 10 (complexity & coverage).
+- **`clone_check.py`**: Detects and eliminates structural code duplication >= 0.8.
+- **`mutant_gate.py`**: Injects mutations into AST to verify tests and kill surviving mutants.
+
+Includes architectural rules: modeling the domain, boundary discipline, type-system discipline, idempotent operations, and shared-state serialization.
+
+### 9. [slack-cli](./slack-cli/SKILL.md)
 A Python-based Slack workspace helper that enables safe interaction with Slack using curated scripts. Provides functionality for:
 
 - Checking unread messages and mentions
@@ -59,10 +67,10 @@ A Python-based Slack workspace helper that enables safe interaction with Slack u
 
 **Key philosophy**: All Slack operations go through approved Python scripts (in `./scripts/`) rather than direct CLI execution, ensuring safe operations and normalized output.
 
-### 9. [test-driven-development](./test-driven-development/SKILL.md)
-Test-driven development reference covering the red→green→refactor loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, refactoring is not part of the loop).
+### 10. [test-driven-development](./test-driven-development/SKILL.md)
+Test-driven development reference covering the red→green loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, laziness protocol, fixing root causes).
 
-### 10. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
+### 11. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
 Downloads YouTube video comments, filters to unique authors, and randomly selects one comment to return. Uses `yt-dlp` to fetch comments and Python's `random` module for selection.
 
 ## Usage
@@ -71,4 +79,4 @@ Each skill is standalone - clone or use the specific skill you need. See the ind
 
 ---
 
-*Repository contains 10 skills total.*
+*Repository contains 11 skills total.*
