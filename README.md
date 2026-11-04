@@ -45,12 +45,12 @@ Core focus areas: architecture evolution, business rule changes, data ownership,
 Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
 
 ### 8. [refactoring](./refactoring/SKILL.md)
-Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior. Includes automated quality-gate scripts in `scripts/`:
-- **`risk_gate.py`**: Enforces function CRAP score < 10 (complexity & coverage).
-- **`clone_check.py`**: Detects and eliminates structural code duplication >= 0.8.
-- **`mutant_gate.py`**: Injects mutations into AST to verify tests and kill surviving mutants.
+Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior across any programming language. Defines three automated quality-gate standards:
+- **`risk-gate`**: Enforces function CRAP score < 10 (complexity & coverage).
+- **`clone-check`**: Detects and eliminates structural code duplication >= 0.8 (e.g. using `jscpd` across 150+ languages).
+- **`mutant-gate`**: Verifies test assertion efficacy via mutation testing (kill surviving mutants, delete dead code).
 
-Includes architectural rules: modeling the domain, boundary discipline, type-system discipline, idempotent operations, and shared-state serialization.
+Includes native tooling matrix (TypeScript, Go, Rust, Python, Java) and architectural rules: modeling the domain, boundary discipline, type-system discipline, idempotent operations, and shared-state serialization.
 
 ### 9. [slack-cli](./slack-cli/SKILL.md)
 A Python-based Slack workspace helper that enables safe interaction with Slack using curated scripts. Provides functionality for:

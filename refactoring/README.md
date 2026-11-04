@@ -1,35 +1,20 @@
 # Refactoring Skill
 
-This skill enforces the **"Then Make it Right"** phase of software development. It provides deterministic quality-gate tools and architectural principles to restructure code without changing observable behavior.
+This skill enforces the **"Then Make it Right"** phase of software development across **any programming language**. It provides deterministic quality-gate standards and architectural principles to restructure code without changing observable behavior.
 
-## Tools Included
+## The Three Quality Gates
 
-### 1. `risk_gate.py`
-Calculates function cyclomatic complexity and CRAP score ($\text{CRAP} = \text{CC}^2 \times (1 - \text{cov})^3 + \text{CC}$).
-Enforces that every function stays under **CRAP 10**.
+1. **`risk-gate`**: Reduce each function under **CRAP 10** ($\text{CRAP} = \text{CC}^2 \times (1 - \text{cov})^3 + \text{CC}$).
+2. **`clone-check`**: Eliminate structural duplication that ranks **0.8 or above** ($\ge 80\%$).
+3. **`mutant-gate`**: Mutation testing — *Cover the uncovered, kill the survivors, delete dead code.*
 
-```bash
-python3 scripts/risk_gate.py path/to/code/ [--coverage-file coverage.json]
-```
+## Native Tooling Matrix
 
-### 2. `clone_check.py`
-Detects AST structural code duplication and Jaccard similarity across functions and methods.
-Flags code pairs with similarity **$\ge 0.8$**.
-
-```bash
-python3 scripts/clone_check.py path/to/code/ [--threshold 0.8]
-```
-
-### 3. `mutant_gate.py`
-Performs programmatic mutation testing by inverting comparisons, arithmetic, and boolean logic.
-Enforces: *Cover the uncovered, kill the survivors, delete dead code.*
-
-```bash
-python3 scripts/mutant_gate.py path/to/file.py --test-cmd "python3 -m unittest"
-```
-
-## Running Tests
-
-```bash
-python3 -m unittest discover -s tests -p "test_*.py"
-```
+| Ecosystem | `risk-gate` ($\text{CRAP} / \text{CC} < 10$) | `clone-check` (Duplication $< 0.8$) | `mutant-gate` (Mutation Kill) |
+| :--- | :--- | :--- | :--- |
+| **Universal (150+ langs)** | Check linter complexity rules | `npx jscpd --threshold 80 <path>` | — |
+| **TypeScript / JavaScript** | `npx eslint --rule 'complexity: ["error", 10]'` | `npx jscpd --threshold 80 src/` | `npx stryker run` |
+| **Go** | `gocyclo -over 10 .` or `golangci-lint run` | `npx jscpd --threshold 80 .` | `go-mutesting ./...` |
+| **Rust** | `cargo clippy -- -D clippy::cognitive_complexity` | `npx jscpd --threshold 80 src/` | `cargo mutants` |
+| **Python** | `radon cc -s -n B .` or `flake8 --max-complexity 10` | `npx jscpd --threshold 80 .` | `mutmut run` |
+| **Java / JVM** | Checkstyle `CyclomaticComplexity` or Sonar | `npx jscpd --threshold 80 src/` | `mvn org.pitest:pitest-maven:mutationCoverage` |

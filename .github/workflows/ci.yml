@@ -33,9 +33,6 @@ jobs:
       - name: Run codebase-context-generator tests
         run: python -m unittest discover -s codebase-context-generator/tests -p "test_*.py" -v
 
-      - name: Run refactoring tests
-        run: python -m unittest discover -s refactoring/tests -p "test_*.py" -v
-
       - name: Run slack-cli tests
         run: python -m unittest discover -s slack-cli/tests -p "test_*.py" -v
 
@@ -66,4 +63,4 @@ jobs:
         run: pip-audit -r requirements.txt
 
       - name: Run Python SAST code security audit (bandit)
-        run: bandit -r codebase-context-generator/ refactoring/ slack-cli/ yt-random-comment-picker/ -ll -x "*/tests/*"
+        run: bandit -r codebase-context-generator/ slack-cli/ yt-random-comment-picker/ -ll -x "*/tests/*"

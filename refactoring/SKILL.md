@@ -7,7 +7,7 @@ metadata:
 
 # Refactoring ("Then Make it Right")
 
-Refactoring is the disciplined process of changing internal code structure without changing its external observable behavior. It follows the Red $\to$ Green minimal implementation ("Make it Work") to ensure code health, architectural integrity, and long-term maintainability.
+Refactoring is the disciplined process of changing internal code structure without changing its external observable behavior. It follows the Red $\to$ Green minimal implementation ("Make it Work") to ensure code health, architectural integrity, and long-term maintainability across any programming language.
 
 ## The Core Rule
 
@@ -19,35 +19,37 @@ Refactoring is the disciplined process of changing internal code structure witho
 
 ## The Three Automated Quality Gates
 
-To prevent subjective or superficial refactoring, run the automated quality gates provided in `scripts/`:
+To prevent subjective or superficial refactoring, enforce the three automated quality gates using the native tools of the target project's ecosystem:
 
 ### 1. `risk-gate` (Complexity & CRAP Score)
 * **Rule**: Reduce each function under **CRAP 10** by splitting it, by testing it, or both. Consider whether case statements are worth reducing.
 * **The Formula**: $\text{CRAP} = \text{CC}^2 \times (1 - \text{coverage})^3 + \text{CC}$.
   * If Cyclomatic Complexity ($\text{CC}$) is $\ge 10$, the function will fail even with 100% test coverage—it *must* be decomposed.
-* **Command**:
-  ```bash
-  python3 refactoring/scripts/risk_gate.py <file-or-dir> [--coverage-file coverage.json]
-  ```
 
 ### 2. `clone-check` (Structural Duplication)
-* **Rule**: Eliminate structural duplication that ranks **0.8 or above**.
-* Normalizes syntax trees to compare structural fingerprints (AST patterns) using Jaccard similarity.
+* **Rule**: Eliminate structural duplication that ranks **0.8 or above** (or $\ge 80\%$).
 * Extract repeated logic, algorithmic patterns, or mirrored workflows into clean, reusable functions or shared classes.
-* **Command**:
-  ```bash
-  python3 refactoring/scripts/clone_check.py <file-or-dir> [--threshold 0.8]
-  ```
 
 ### 3. `mutant-gate` (Mutation Testing)
 * **Rule**: Cover the uncovered. Kill the survivors. Delete dead code.
-* Mutates operators (`==` $\leftrightarrow$ `!=`, `+` $\leftrightarrow$ `-`, booleans) to test whether tests actually catch bugs.
+* Injects programmatic mutations (inverting comparison operators, arithmetic, or booleans) to verify that tests actually assert behavior.
   * **Killed mutant**: Test suite fails (Good—test verified behavior).
   * **Surviving mutant**: Test suite passes (Bad—weak assertion or dead code).
-* **Command**:
-  ```bash
-  python3 refactoring/scripts/mutant_gate.py <file> --test-cmd "<test-command>"
-  ```
+
+---
+
+## Native Tooling Matrix by Language
+
+Execute the corresponding native CLI tool for the project being refactored:
+
+| Ecosystem | `risk-gate` ($\text{CRAP} / \text{CC} < 10$) | `clone-check` (Duplication $< 0.8$) | `mutant-gate` (Mutation Kill) |
+| :--- | :--- | :--- | :--- |
+| **Universal (150+ langs)** | Check linter complexity rules | `npx jscpd --threshold 80 <path>` | — |
+| **TypeScript / JavaScript** | `npx eslint --rule 'complexity: ["error", 10]'` | `npx jscpd --threshold 80 src/` | `npx stryker run` |
+| **Go** | `gocyclo -over 10 .` or `golangci-lint run` | `npx jscpd --threshold 80 .` | `go-mutesting ./...` |
+| **Rust** | `cargo clippy -- -D clippy::cognitive_complexity` | `npx jscpd --threshold 80 src/` | `cargo mutants` |
+| **Python** | `radon cc -s -n B .` or `flake8 --max-complexity 10` | `npx jscpd --threshold 80 .` | `mutmut run` |
+| **Java / JVM** | Checkstyle `CyclomaticComplexity` or Sonar | `npx jscpd --threshold 80 src/` | `mvn org.pitest:pitest-maven:mutationCoverage` |
 
 ---
 
@@ -82,9 +84,9 @@ Refactoring must drive the code toward the following architectural standards:
 ## Step-by-Step Refactoring Workflow
 
 1. **Verify Baseline Tests**:
-   Run the test suite. Ensure all tests pass. If tests do not exist for the code being refactored, write **characterization tests** to lock in current behavior before touching code.
+   Run the project's test suite. Ensure all tests pass. If tests do not exist for the code being refactored, write **characterization tests** to lock in current behavior before touching code.
 2. **Run Quality Gates**:
-   Execute `risk_gate.py` and `clone_check.py` to identify high-risk functions ($\text{CRAP} \ge 10$) and structural duplicates ($\ge 0.8$).
+   Execute the ecosystem's `risk-gate` and `clone-check` commands to identify high-risk functions ($\text{CRAP} \ge 10$) and structural duplicates ($\ge 0.8$).
 3. **Execute Surgical Refactorings**:
    * Split complex methods into cohesive pure helper functions.
    * Eliminate duplication by extracting shared logic.
