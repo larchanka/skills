@@ -1,3 +1,14 @@
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│  ███████╗██╗  ██╗██╗██╗     ██╗     ███████╗                       │
+│  ██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝   AUTONOMOUS AGENT    │
+│  ███████╗█████╔╝ ██║██║     ██║     ███████╗      TOOLSUITE &      │
+│  ╚════██║██╔═██╗ ██║██║     ██║     ╚════██║  WORKFLOW EXTENSIONS  │
+│  ███████║██║  ██╗██║███████╗███████╗███████║                       │
+│  ╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝                       │
+└────────────────────────────────────────────────────────────────────┘
+```
+
 # Skills
 
 This repository is a collection of independent skills and tools for software development and automation. Each skill is a self-contained project with its own purpose, implementation, and documentation.
