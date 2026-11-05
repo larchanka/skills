@@ -80,6 +80,79 @@ Test-driven development reference covering the red→green loop. Defines what ma
 ### 12. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
 Downloads YouTube video comments, filters to unique authors, and randomly selects one comment to return. Uses `yt-dlp` to fetch comments and Python's `random` module for selection.
 
+## Dependencies & Required Tools
+
+Depending on which skills you plan to use, ensure the following host applications, CLIs, and runtimes are pre-installed and available in your environment.
+
+### 1. Core Runtimes & System Tools
+
+| Tool | Minimum Version | Used By Skills | Description & Download Link |
+| :--- | :--- | :--- | :--- |
+| **Git** | `2.30+` | `agent-loop`, `pull-request`, `code-review`, `project-change-intelligence`, `codebase-context-generator` | Distributed version control system.<br/>👉 [git-scm.com](https://git-scm.com/) |
+| **GitHub CLI (`gh`)** | `2.40+` | `pull-request`, `agent-loop`, `project-change-intelligence` | Official GitHub CLI for branch push, authentication, and PR automation.<br/>👉 [cli.github.com](https://cli.github.com/) |
+| **Python 3** | `3.10+` | `email-triage`, `slack-cli`, `yt-random-comment-picker`, `codebase-context-generator` | Python runtime environment for executing automation script suites and tests.<br/>👉 [python.org/downloads](https://www.python.org/downloads/) |
+| **Node.js & npm** | `v18+` | `manual-automation`, `refactoring` | JavaScript runtime required for Chrome DevTools MCP and universal quality gates.<br/>👉 [nodejs.org](https://nodejs.org/) |
+
+### 2. Service & Platform CLIs
+
+| Tool | Used By Skill | Purpose & Installation Link |
+| :--- | :--- | :--- |
+| **Google Workspace CLI (`gog`)** | `email-triage` | Official Google Workspace CLI for Gmail, Calendar, Drive, and auth.<br/>👉 [gogcli.sh](https://gogcli.sh/) · [GitHub Repo](https://github.com/google/gogcli) |
+| **Slack CLI (`slackcli`)** | `slack-cli` | Fast, lightweight standalone CLI for Slack workspaces by `shaharia-lab`.<br/>👉 [slackcli.dev](https://slackcli.dev/) · [GitHub Repo](https://github.com/shaharia-lab/slackcli) |
+| **yt-dlp** | `yt-random-comment-picker` | Command-line media and comment thread extractor for YouTube.<br/>👉 [github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) |
+
+### 3. Browser & Automation Tools
+
+| Tool | Used By Skill | Purpose & Installation Link |
+| :--- | :--- | :--- |
+| **Google Chrome / Chromium** | `manual-automation` | Browser runtime for interactive and headless DevTools automation.<br/>👉 [google.com/chrome](https://www.google.com/chrome/) |
+| **Chrome DevTools MCP Server** | `manual-automation` | Model Context Protocol server exposing browser control and inspection.<br/>👉 [Chrome DevTools MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/chrome-devtools) |
+
+### 4. Code Quality & Analysis Packages
+
+| Tool / Package | Used By Skill | Purpose & Installation Link |
+| :--- | :--- | :--- |
+| **Tree-sitter & Grammars** | `codebase-context-generator` | Parser generator and Python bindings for AST and call graph generation (`pip install -r requirements.txt`).<br/>👉 [tree-sitter.github.io](https://tree-sitter.github.io/tree-sitter/) |
+| **jscpd** | `refactoring` | Universal copy/paste detector across 150+ programming languages (`npx jscpd`).<br/>👉 [github.com/kucherenko/jscpd](https://github.com/kucherenko/jscpd) |
+| **Linters & Mutation Runners** | `refactoring`, `test-driven-development` | Native quality gate tools: `radon`/`flake8` (Python), `eslint`/`stryker` (JS/TS), `gocyclo`/`go-mutesting` (Go), `clippy`/`cargo-mutants` (Rust). |
+
+---
+
+### Quick Install Guide
+
+#### macOS (via Homebrew)
+```bash
+# Core tools & CLIs
+brew install git gh python node yt-dlp
+
+# Google Workspace CLI
+brew install google/gogcli/gog
+
+# Slack CLI
+brew install shaharia-lab/tap/slackcli
+
+# Google Chrome
+brew install --cask google-chrome
+
+# Python AST requirements
+pip install -r requirements.txt
+```
+
+#### Ubuntu / Debian
+```bash
+# Core tools & CLIs
+sudo apt-get update && sudo apt-get install -y git gh python3 python3-pip nodejs npm
+
+# yt-dlp
+sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+
+# Python AST requirements
+pip install -r requirements.txt
+```
+
+---
+
 ## Usage
 
 Each skill is standalone - clone or use the specific skill you need. See the individual `SKILL.md` files for detailed documentation, setup instructions, and usage examples.
