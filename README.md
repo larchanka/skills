@@ -28,23 +28,30 @@ Includes guidelines on change sizing, change descriptions, review process, handl
 ### 3. [codebase-context-generator](./codebase-context-generator/SKILL.md)
 Generates comprehensive AI context, `AGENTS.md`, and structured documentation in a `context/` directory for any brownfield codebase using Tree-sitter AST extraction, dependency analysis, predefined Python scripts, and orchestrated subagents.
 
-### 4. [manual-automation](./manual-automation/SKILL.md)
+### 4. [email-triage](./email-triage/SKILL.md)
+An autonomous multi-agent email triage system powered by dedicated Python wrapper scripts around the Google Workspace CLI (`gog`). Discovers accounts dynamically via `gog auth` (prioritizing default account first), delegates each thread to an isolated sub-agent for classification, and safely executes non-destructive actions:
+- Moving cold outreach and spam to Gmail Trash (`--trash`) with a 30-day recovery safety net.
+- Marking read and archiving regular notifications and automated alerts (`--archive`).
+- Creating contextual draft replies in Gmail for action items and questions without auto-sending.
+- Comprehensive `--dry-run` simulation support across all mutating operations.
+
+### 5. [manual-automation](./manual-automation/SKILL.md)
 Enables manual browser testing and automation using the Chrome DevTools MCP server. Covers the full workflow from port management through application launch, browser automation, login, and end-to-end testing. Includes port conflict handling, application launch sequences, login flows, E2E test execution with MCP tools, and cleanup procedures.
 
-### 5. [planning-and-task-breakdown](./planning-and-task-breakdown/SKILL.md)
+### 6. [planning-and-task-breakdown](./planning-and-task-breakdown/SKILL.md)
 Decompose work into small, verifiable tasks with explicit acceptance criteria. Covers the planning process: entering plan mode, identifying dependency graphs, slicing vertically, writing tasks with description/acceptance criteria/verification/dependencies/files/scope, and ordering with checkpoints. Includes task sizing guidelines (XS-L) and red flags to watch for.
 
-### 6. [project-change-intelligence](./project-change-intelligence/SKILL.md)
+### 7. [project-change-intelligence](./project-change-intelligence/SKILL.md)
 A progressive investigation framework for understanding how software evolves. Acts as a senior software engineer and technical project historian, helping project owners maintain accurate understanding of codebase evolution without manually inspecting every detail.
 
 Uses a progressive investigation strategy (stages 0-4) from quick scans to full project-level analysis. Emphasizes evidence-first approach, prioritizing significance, and preserving context. Supports parallel investigation with subagents for independent analysis areas.
 
 Core focus areas: architecture evolution, business rule changes, data ownership, API compatibility, security/reliability, test coverage, and deployment implications.
 
-### 7. [pull-request](./pull-request/SKILL.md)
+### 8. [pull-request](./pull-request/SKILL.md)
 Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
 
-### 8. [refactoring](./refactoring/SKILL.md)
+### 9. [refactoring](./refactoring/SKILL.md)
 Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior across any programming language. Defines three automated quality-gate standards:
 - **`risk-gate`**: Enforces function CRAP score < 10 (complexity & coverage).
 - **`clone-check`**: Detects and eliminates structural code duplication >= 0.8 (e.g. using `jscpd` across 150+ languages).
@@ -52,7 +59,7 @@ Executes the disciplined "Then Make it Right" refactoring workflow without alter
 
 Includes native tooling matrix (TypeScript, Go, Rust, Python, Java) and architectural rules: modeling the domain, boundary discipline, type-system discipline, idempotent operations, and shared-state serialization.
 
-### 9. [slack-cli](./slack-cli/SKILL.md)
+### 10. [slack-cli](./slack-cli/SKILL.md)
 A Python-based Slack workspace helper that enables safe interaction with Slack using curated scripts. Provides functionality for:
 
 - Checking unread messages and mentions
@@ -67,10 +74,10 @@ A Python-based Slack workspace helper that enables safe interaction with Slack u
 
 **Key philosophy**: All Slack operations go through approved Python scripts (in `./scripts/`) rather than direct CLI execution, ensuring safe operations and normalized output.
 
-### 10. [test-driven-development](./test-driven-development/SKILL.md)
+### 11. [test-driven-development](./test-driven-development/SKILL.md)
 Test-driven development reference covering the red→green loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, laziness protocol, fixing root causes).
 
-### 11. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
+### 12. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
 Downloads YouTube video comments, filters to unique authors, and randomly selects one comment to return. Uses `yt-dlp` to fetch comments and Python's `random` module for selection.
 
 ## Usage
@@ -79,4 +86,4 @@ Each skill is standalone - clone or use the specific skill you need. See the ind
 
 ---
 
-*Repository contains 11 skills total.*
+*Repository contains 12 skills total.*
