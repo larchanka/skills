@@ -33,8 +33,9 @@ class TestAccountResolution(unittest.TestCase):
     def tearDown(self):
         clear_account_cache()
 
+    @patch("scripts.common.get_gog_bin", return_value="/mock/bin/gog")
     @patch("subprocess.run")
-    def test_get_default_account_from_gog_status(self, mock_run):
+    def test_get_default_account_from_gog_status(self, mock_run, mock_bin):
         mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = '{"account": {"email": "user@example.com"}}'
         with patch.dict(os.environ, {}, clear=True):
@@ -44,8 +45,9 @@ class TestAccountResolution(unittest.TestCase):
         with patch.dict(os.environ, {"GOG_ACCOUNT": "env_user@example.com"}):
             self.assertEqual(get_default_account(), "env_user@example.com")
 
+    @patch("scripts.common.get_gog_bin", return_value="/mock/bin/gog")
     @patch("subprocess.run")
-    def test_get_account_aliases(self, mock_run):
+    def test_get_account_aliases(self, mock_run, mock_bin):
         mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = json.dumps({
             "aliases": {"work": "work@example.com", "home": "home@gmail.com"}
@@ -55,8 +57,9 @@ class TestAccountResolution(unittest.TestCase):
         self.assertEqual(aliases.get("home"), "home@gmail.com")
 
     @patch("scripts.common.get_default_account", return_value="default@example.com")
+    @patch("scripts.common.get_gog_bin", return_value="/mock/bin/gog")
     @patch("subprocess.run")
-    def test_get_configured_accounts_places_default_first(self, mock_run, mock_def):
+    def test_get_configured_accounts_places_default_first(self, mock_run, mock_bin, mock_def):
         mock_run.return_value.returncode = 0
         mock_run.return_value.stdout = json.dumps({
             "accounts": [
