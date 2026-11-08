@@ -12,6 +12,7 @@ The fundamental principles of `agent-loop` are **role isolation** and **pure orc
   - **Zero Task-Related Actions**: The coordinator **MUST NOT** read codebase files, search or grep code, explore project architecture, or inspect git diffs. All reading, implementation, testing, and reviewing are delegated strictly to subagents.
   - **Zero Code Changes**: The coordinator **MUST NOT** write code, create source files, or edit application logic.
   - **Force Skill Loading (No Instruction Inlining)**: The coordinator **MUST NOT** summarize, fragment, or paraphrase skill instructions in subagent prompts. Instead, it explicitly instructs each subagent to read and execute its designated skill (`SKILL.md`).
+  - **Subagent Context Lifecycle**: Enforces strict context isolation between tasks and continuity within task fixes: spawns a fresh subagent for each new task via `invoke_subagent`, and reuses the same subagent via `send_message` for post-review fixes.
 - **The Subagents**: Specialized agents spawned for distinct phases of the software development lifecycle (SDLC), required to load and operate under dedicated workspace skill playbooks (`planning-and-task-breakdown`, `test-driven-development`, `refactoring`, `code-review`, and `pull-request`).
 
 By enforcing strict boundaries, the loop eliminates common single-agent failure modes—such as skipping unit tests, rationalizing sloppy implementations, or opening half-finished pull requests without quality audits.
@@ -33,13 +34,13 @@ graph TD
     Plan --> SavePlan["Generate tasks/plan.md & tasks/todo.md"]
     SavePlan --> ApprPlan{"User Approval?"}
     ApprPlan -- "No / Revisions" --> Plan
-    ApprPlan -- "Yes (Proceed)" --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)"]
-    Dev --> ImpTask["Implement Next Task via TDD & Quality Gates"]
+    ApprPlan -- "Yes (Proceed)" --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)<br/><i>Spawn fresh context per new task</i>"]
+    Dev --> ImpTask["Implement Task via TDD & Quality Gates"]
     ImpTask --> Rev["3. Review Subagent<br/>(code-review)"]
     Rev --> Check{"Any Findings?<br/>(Standards / Spec / Bugs)"}
-    Check -- "Yes (Findings > 0)" --> Dev
+    Check -- "Yes (Fix with same dev context via send_message)" --> Dev
     Check -- "No (0 Findings)" --> CheckMore{"Remaining Tasks in todo.md?"}
-    CheckMore -- "Yes" --> Dev
+    CheckMore -- "Yes (Spawn new dev agent with fresh context)" --> Dev
     CheckMore -- "No" --> Pub["4. Publisher Subagent<br/>(pull-request)"]
     Pub --> OpenPR["Create Branch, Conventional Commit, Push & gh pr create"]
     OpenPR --> Done["Complete: Pull Request Published"]
@@ -53,14 +54,14 @@ graph TD
    - Explores codebase architecture, decomposes the initiative into small, vertically sliced tasks.
    - Produces `tasks/plan.md` (architectural design) and `tasks/todo.md` (actionable checklist) for user confirmation.
 2. **Development Phase (`development` subagent)**
-   - Coordinator delegates the next incomplete task from `tasks/todo.md`.
+   - Coordinator delegates the next incomplete task from `tasks/todo.md` by spawning a **fresh** subagent instance (`invoke_subagent`) to guarantee clean, isolated context.
    - Subagent is mandated to load and follow `test-driven-development/SKILL.md` (test-first Red-Green cycle) and `refactoring/SKILL.md` (automated quality gates: CRAP < 10, duplication elimination, mutation killing).
    - Writes tests first, implements minimal code to pass, refactors under quality gates, and marks task `[x]`.
 3. **Review Phase (`review` subagent)**
    - Coordinator triggers the subagent without inspecting diffs itself.
    - Subagent is mandated to load and follow `code-review/SKILL.md`.
    - Inspects `git diff` against five review axes: Correctness, Readability, Architecture, Security, and Performance.
-   - Findings are routed directly back to the development subagent for remediation.
+   - Findings are routed directly back to the **same** development subagent instance via `send_message` for remediation within the same working context.
 4. **Publishing Phase (`publisher` subagent)**
    - Coordinator delegates publication once all tasks in `tasks/todo.md` pass review.
    - Subagent is mandated to load and follow `pull-request/SKILL.md`.
@@ -149,14 +150,15 @@ The coordinator executes pure workflow orchestration without inspecting codebase
 
 2. **Step 2: Task-by-Task TDD Implementation**
    - Coordinator selects the next incomplete task from `tasks/todo.md`.
-   - Invokes `development` subagent, mandating it to load and execute `test-driven-development/SKILL.md` and `refactoring/SKILL.md`.
+   - Spawns a **fresh** `development` subagent instance via `invoke_subagent` to ensure clean, isolated context per task and records its `conversationId`.
+   - Mandates the subagent load and execute `test-driven-development/SKILL.md` and `refactoring/SKILL.md`.
    - Subagent implements test-first, refactors under quality gates (CRAP < 10, clone checks, mutation tests), and marks task `[x]`.
 
 3. **Step 3: Quality Gate Review**
    - Coordinator triggers `review` subagent, mandating it to load and execute `code-review/SKILL.md`.
    - Subagent audits git diff against the 5 quality axes.
-   - If findings are reported, coordinator routes the reviewer's report directly to `development` subagent to address.
-   - When 0 findings remain, the loop advances to the next task in `tasks/todo.md`.
+   - If findings are reported, coordinator routes the reviewer's report directly to the **same** `development` subagent via `send_message` (using its `conversationId`) to remediate within the original context.
+   - When 0 findings remain, the loop advances to the next task in `tasks/todo.md` (spawning a new development subagent with fresh context).
 
 4. **Step 4: Publishing Pull Request**
    - Once all tasks in `tasks/todo.md` are marked `[x]`, coordinator invokes `publisher` subagent.

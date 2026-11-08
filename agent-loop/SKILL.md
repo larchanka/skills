@@ -2,7 +2,7 @@
 name: agent-loop
 description: Orchestrates a multi-agent loop involving planning, development, review, and publishing sub-agents to implement and publish features test-first and with high standards compliance.
 metadata:
-   version: 1.2.0
+   version: 1.3.0
 ---
 
 # Multi-Agent Iteration Loop
@@ -15,13 +15,13 @@ graph TD
     Plan --> SavePlan["Generate tasks/plan.md & tasks/todo.md"]
     SavePlan --> ApprPlan{"User Approval?"}
     ApprPlan -- No --> Plan
-    ApprPlan -- Yes --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)"]
-    Dev --> ImpTask["Implement Next Task via TDD & Quality Gates"]
+    ApprPlan -- Yes --> Dev["2. Development Subagent<br/>(test-driven-development + refactoring)<br/><i>Spawn fresh context per new task</i>"]
+    Dev --> ImpTask["Implement Task via TDD & Quality Gates"]
     ImpTask --> Rev["3. Review Subagent<br/>(code-review)"]
     Rev --> Check{"Any Findings?"}
-    Check -- Yes (Bug / Smell) --> Dev
-    Check -- No --> CheckMore{"More Tasks in todo.md?"}
-    CheckMore -- Yes --> Dev
+    Check -- "Yes (Fix with same dev context via send_message)" --> Dev
+    Check -- "No (Approved)" --> CheckMore{"More Tasks in todo.md?"}
+    CheckMore -- "Yes (Spawn new dev agent with fresh context)" --> Dev
     CheckMore -- No --> Pub["4. Publisher Subagent<br/>(pull-request)"]
     Pub --> OpenPR["Create Branch, Commit & gh pr create"]
     OpenPR --> Done["Done - Pull Request Published"]
@@ -35,6 +35,9 @@ graph TD
 > 2. **Zero Code Changes**: The orchestrator MUST NOT write code, create source files, edit application logic, or run execution commands.
 > 3. **Pass Raw Task Context Directly**: Pass user requests, specs, and file paths directly to the subagents without pre-reading, summarizing, or distilling them.
 > 4. **Force Skill Loading (No Instruction Inlining)**: The orchestrator MUST NOT summarize, fragment, or paraphrase skill instructions in subagent prompts. Instead, the orchestrator MUST explicitly instruct each subagent to read and execute its designated skill (`SKILL.md`).
+> 5. **Subagent Context Lifecycle (Isolation vs Continuity)**:
+>    - **New Task = Fresh Subagent**: For every new task in `tasks/todo.md`, ALWAYS spawn a new development subagent via `invoke_subagent`. Never reuse a development agent across different tasks to avoid context pollution and token bloat.
+>    - **Review Remediation = Same Agent Context**: If the review reports findings, ALWAYS message the same development subagent instance via `send_message` using its `conversationId`. Do not spawn a new agent for post-review fixes.
 
 ## Workflow Execution Steps
 
@@ -58,7 +61,9 @@ graph TD
 - **Handoff**: Once the planning subagent returns `tasks/plan.md` and `tasks/todo.md`, present the plan to the user for approval before starting implementation.
 
 ### 2. Development Phase (Task Implementation)
-- **Action**: Check which task is next in `tasks/todo.md`. Spawn or message the `development` subagent to implement that single task.
+- **Action**: Check which task is next in `tasks/todo.md`.
+  - **New Task**: ALWAYS spawn a **brand new** `development` subagent instance using `invoke_subagent` to ensure clean, isolated context for each task. Never reuse a development subagent from a previous task.
+  - Record the returned `conversationId` for this task.
 - **Skill Mandate**: Force the subagent to load and follow [test-driven-development](../test-driven-development/SKILL.md) and [refactoring](../refactoring/SKILL.md).
 - **Subagent Prompt Directive**:
   ```text
@@ -90,8 +95,8 @@ graph TD
   Report whether the review passes with 0 findings or list any actionable findings to remediate.
   ```
 - **Evaluate results**:
-  - **If there are findings**: Pass the reviewer's findings directly back to the `development` subagent with instructions to address them. Re-run the `review` subagent once the developer has remediated the issues.
-  - **If there are 0 findings**: Advance to the next task in `tasks/todo.md` (back to Step 2). If all tasks are completed `[x]`, proceed to Step 4.
+  - **If there are findings**: Message the **same** `development` subagent instance (using `send_message` with its task `conversationId`) passing the reviewer's findings directly so it remediates within the same development context. Re-run the `review` subagent once the developer has remediated the issues.
+  - **If there are 0 findings**: Advance to the next task in `tasks/todo.md` (back to Step 2, where a **new** development subagent will be spawned). If all tasks are completed `[x]`, proceed to Step 4.
 
 ### 4. Publishing Phase (Deployment Gate)
 - **Action**: Spawn the `publisher` subagent to finalize, commit, push, and create the PR.
@@ -110,6 +115,7 @@ graph TD
 - **Zero Inspection by Coordinator**: The coordinator thread stays clean and minimal. Never load or read application source files in the orchestrator session.
 - **Pass Pure Payloads**: Hand off unedited user instructions and artifacts directly to subagents.
 - **Strict Skill Enforcement**: Subagents have rich, detailed instructions in their respective skill folders. Force subagents to read their `SKILL.md` instead of inlining summarized versions.
+- **Context Boundaries vs. Remediation Continuity**: Enforce fresh subagent context for each new task to eliminate context bloat and hallucination accumulation. Maintain context continuity only during review remediation by messaging the same subagent instance via `send_message`.
 - **Keep a Log**: Track workflow transitions and reasons in a lightweight orchestrator log.
 
 ## Exit Criteria
