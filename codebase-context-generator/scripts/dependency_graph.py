@@ -28,23 +28,33 @@ def normalize_import_path(source_str: str, current_file: str, known_files: Set[s
     if not source_str:
         return "", False
 
-    # Clean quotes or punctuation
-    clean_src = source_str.strip("\"'; ()")
+    # If source string contains quotes (e.g., from regex import clause or Tree-sitter import), extract the module path
+    m = re.search(r"['\"]([^'\"]+)['\"]", source_str)
+    if m:
+        clean_src = m.group(1).strip()
+    else:
+        clean_src = source_str.strip("\"'; ()")
+
+    if not clean_src or clean_src in ("{", "}", "{ ") or re.match(r"^\{\s*$", clean_src):
+        return "", False
 
     # Relative path resolution (JS/TS/Python relative)
     if clean_src.startswith("."):
         curr_dir = Path(current_file).parent
         # Resolve relative to current directory and normalize path
         candidate = os.path.normpath((curr_dir / clean_src).as_posix()).replace("\\", "/")
-        # Try matching with known file extensions
-        for ext in ["", ".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rs"]:
-            cand_with_ext = candidate + ext if ext else candidate
-            if cand_with_ext in known_files:
-                return cand_with_ext, True
-            # Also check index files (e.g. foo/index.ts)
-            index_cand = f"{candidate}/index{ext}"
-            if index_cand in known_files:
-                return index_cand, True
+        base_cand = os.path.splitext(candidate)[0]
+
+        # Try matching with candidate and base_cand across known file extensions (e.g. .js -> .ts)
+        for c in [candidate, base_cand]:
+            for ext in ["", ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs"]:
+                cand_with_ext = c + ext if ext else c
+                if cand_with_ext in known_files:
+                    return cand_with_ext, True
+                # Also check index files (e.g. foo/index.ts)
+                index_cand = f"{c}/index{ext}"
+                if index_cand in known_files:
+                    return index_cand, True
 
     # Absolute or package-style matching
     for kf in known_files:
