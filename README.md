@@ -29,12 +29,12 @@ Key constraint: Pure orchestration only — the coordinator MUST NOT read codeba
 A comprehensive multi-axis code review framework that evaluates changes across five dimensions:
 
 - **Correctness**: Does the code do what it claims? Edge cases, error paths, test coverage.
-- **Readability & Simplicity**: Clear names, straightforward control flow, appropriate abstraction levels.
-- **Architecture**: Fit with system design, module boundaries, dependency direction.
+- **Readability & Simplicity**: Clear names, straightforward control flow, "code judo" complexity deletion over rearrangement.
+- **Architecture**: Fit with system design, module boundaries, anti-spaghetti branching checks, 1,000-line file growth boundary.
 - **Security**: Input validation, secret management, authentication/authorization, parameterized queries.
-- **Performance**: N+1 patterns, unbounded loops, async/sync appropriateness, re-renders.
+- **Performance**: N+1 patterns, unbounded loops, atomic transitions, async/sync appropriateness, re-renders.
 
-Includes guidelines on change sizing, change descriptions, review process, handling disagreements, and honesty in review.
+Includes guidelines on change sizing, file decomposition ceilings, presumptive blockers, change descriptions, review process, handling disagreements, and honesty in review.
 
 ### 3. [codebase-context-generator](./codebase-context-generator/SKILL.md)
 Generates comprehensive AI context, `AGENTS.md`, and structured documentation in a `context/` directory for any brownfield codebase using Tree-sitter AST extraction, dependency analysis, predefined Python scripts, and orchestrated subagents.
@@ -63,10 +63,11 @@ Core focus areas: architecture evolution, business rule changes, data ownership,
 Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a GitHub pull request using the `gh` CLI. Follows conventional commit syntax and handles authentication errors gracefully.
 
 ### 9. [refactoring](./refactoring/SKILL.md)
-Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior across any programming language. Defines three automated quality-gate standards:
+Executes the disciplined "Then Make it Right" refactoring workflow without altering observable behavior across any programming language. Defines four quality-gate standards:
 - **`risk-gate`**: Enforces function CRAP score < 10 (complexity & coverage).
-- **`clone-check`**: Detects and eliminates structural code duplication >= 0.8 (e.g. using `jscpd` across 150+ languages).
+- **`clone-check`**: Detects and eliminates structural code duplication >= 0.8 (e.g. using `jscpd` across 150+ languages) and reuses canonical helpers.
 - **`mutant-gate`**: Verifies test assertion efficacy via mutation testing (kill surviving mutants, delete dead code).
+- **`simplification-gate`**: Net conceptual reduction and "code judo" (delete complexity, eliminate thin pass-through wrappers, clean up ad-hoc branching, decompose files > 1k lines).
 
 Includes native tooling matrix (TypeScript, Go, Rust, Python, Java) and architectural rules: modeling the domain, boundary discipline, type-system discipline, idempotent operations, and shared-state serialization.
 
@@ -86,7 +87,7 @@ A Python-based Slack workspace helper that enables safe interaction with Slack u
 **Key philosophy**: All Slack operations go through approved Python scripts (in `./scripts/`) rather than direct CLI execution, ensuring safe operations and normalized output.
 
 ### 11. [test-driven-development](./test-driven-development/SKILL.md)
-Test-driven development reference covering the red→green loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing), and rules of the loop (red before green, one slice at a time, laziness protocol, fixing root causes).
+Test-driven development reference covering the red→green loop. Defines what makes a good test (verifies behavior through public interfaces, reads like specification, survives refactors), where tests go (at seams, never against internals), anti-patterns (implementation-coupled, tautological, horizontal slicing, green-phase accretion of conditional spaghetti), and rules of the loop (red before green, one slice at a time, laziness protocol, scaffolding cleanup, fixing root causes).
 
 ### 12. [yt-random-comment-picker](./yt-random-comment-picker/SKILL.md)
 Downloads YouTube video comments, filters to unique authors, and randomly selects one comment to return. Uses `yt-dlp` to fetch comments and Python's `random` module for selection.
