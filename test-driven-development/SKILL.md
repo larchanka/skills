@@ -2,7 +2,7 @@
 name: test-driven-development
 description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
 metadata:
-   version: 1.1.0
+   version: 1.2.0
 ---
 
 # Test-Driven Development
@@ -32,12 +32,15 @@ Ask: "What's the public interface, and which seams should we test?"
 - **Implementation-coupled** — mocks internal collaborators, tests private methods, or verifies through a side channel (querying the database instead of using the interface). The tell: the test breaks when you refactor but behavior hasn't changed.
 - **Tautological** — the assertion recomputes the expected value the way the code does (`expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way, a constant asserted equal to itself), so it passes by construction and can never disagree with the code. Expected values must come from an independent source of truth — a known-good literal, a worked example, the spec.
 - **Horizontal slicing** — writing all tests first, then all implementation. Bulk tests verify _imagined_ behavior: you test the _shape_ of things rather than user-facing behavior, the tests go insensitive to real changes, and you commit to test structure before understanding the implementation. Work in **vertical slices** instead — one test → one implementation → repeat, each test a **tracer bullet** that responds to what the last cycle taught you.
+- **Green-phase accretion (Conditional Spaghetti)** — turning tests green by accumulating ad-hoc booleans, one-off flags, or special-case branches in existing flows without restructuring them. The minimal code written to pass the test is temporary scaffolding; if not cleaned up during refactoring, it hardens into permanent technical debt across slices.
 
 ## Laziness Protocol
 
 - **One decision lives in one place.** Keep single sources of truth.
 - **Ship the smallest edit that solves the problem.**
 - **Subtract before you add.** Take complexity out before you add anything.
+- **Delete scaffolding before the next slice.** Once green, evaluate whether the implementation can be reframed with fewer concepts or simpler defaults before moving to the next Red test.
+- **Never accept working spaghetti.** A green test proves correctness, but does not excuse architectural degradation or file bloat.
 
 ## Fixing Root Causes
 
@@ -51,4 +54,4 @@ Ask: "What's the public interface, and which seams should we test?"
 - **Make the smallest change that makes it pass.** Don't anticipate future tests or add speculative features.
 - **Honest testing.** If an honest test is impractical, do not write a bad one.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
-- **Refactoring ("Then Make it Right").** Restructuring and quality gating are separated from the Red-Green loop: once green, transition to the `refactoring` skill to pin, clean up duplication, enforce CRAP < 10, and eliminate mutants.
+- **Refactoring ("Then Make it Right").** Restructuring and quality gating are separated from the Red-Green loop: once green, transition to the `refactoring` skill to pin behavior, clean up duplication, eliminate ad-hoc conditionals, enforce CRAP < 10, eliminate mutants, and find the "code judo" move that makes the implementation feel inevitable in hindsight. Never let a vertical slice push a file past the 1,000-line boundary without decomposing it.

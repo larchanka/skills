@@ -2,7 +2,7 @@
 name: code-review
 description: Conducts multi-axis code review. Use before merging any change. Use when reviewing code written by yourself, another agent, or a human. Use when you need to assess code quality across multiple dimensions before it enters the main branch.
 metadata:
-   version: 1.1.0
+   version: 1.2.0
 ---
 
 # Code Review and Quality
@@ -11,7 +11,10 @@ metadata:
 
 Multi-dimensional code review with quality gates. Every change gets reviewed before merge — no exceptions. Review covers five axes: correctness, readability, architecture, security, and performance.
 
-**The approval standard:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a change because it isn't exactly how you would have written it. If it improves the codebase and follows the project's conventions, approve it.
+### Review Modes & Approval Standards
+
+- **Standard Review:** Approve a change when it definitely improves overall code health, even if it isn't perfect. Perfect code doesn't exist — the goal is continuous improvement. Don't block a change because it isn't exactly how you would have written it. If it improves the codebase and follows the project's conventions, approve it.
+- **Thermo-Nuclear / Deep Quality Audit:** For critical systems, architectural pivots, core libraries, or when explicitly requested. Uncompromising and strict on structural simplification. Look actively for "code judo" moves: restructurings that preserve behavior while making the implementation dramatically simpler, smaller, and more direct. Do not rubber-stamp "it works" code that leaves the codebase more complex or spaghetti-tangled.
 
 ## When to Use
 
@@ -45,6 +48,8 @@ Can another engineer (or agent) understand this code without the author explaini
 - Are there any "clever" tricks that should be simplified?
 - **Could this be done in fewer lines?** (1000 lines where 100 suffice is a failure)
 - **Are abstractions earning their complexity?** (Don't generalize until the third use case)
+- **Delete complexity instead of rearranging it ("Code Judo"):** Look for opportunities to reframe the design so that whole branches, helpers, modes, or layers disappear entirely. Prefer solutions that make the code feel inevitable in hindsight.
+- **Direct, boring code over magic & thin indirection:** Flag thin wrappers, pass-through helpers, or identity abstractions that add indirection without buying clarity. Be skeptical of generic mechanisms that obscure simple data shapes.
 - Would comments help clarify non-obvious intent? (But don't comment obvious code.)
 - Are there dead code artifacts: no-op variables (`_unused`), backwards-compat shims, or `// removed` comments?
 
@@ -53,11 +58,13 @@ Can another engineer (or agent) understand this code without the author explaini
 Does the change fit the system's design?
 
 - Does it follow existing patterns or introduce a new one? If new, is it justified?
+- **Anti-spaghetti & ad-hoc branching gate:** Be highly suspicious of new ad-hoc conditionals, scattered special cases, or one-off boolean flags inserted into unrelated flows ("weird if statements in random places"). Treat these as design problems requiring a dedicated abstraction, state machine, or policy object rather than a stylistic nit.
 - **Model the domain:** Does the domain structure make illegal states impossible to represent? Is there a clear glossary of domain terms? If existing code is already clear and local, leave it.
 - **Boundary discipline:** Is outside data checked/parsed where it enters? Inside boundaries, is it trusted? Is core business logic isolated in pure functions?
-- **Type system discipline:** Are illegal values impossible to write? Is external data parsed once at ingestion? Are compiler or linter errors/warnings silenced (never allow `@ts-ignore`, `# noqa`, or compiler suppression without explicit justification)?
-- **Idempotency:** Are state-mutating operations idempotent? Will running an operation twice or recovering after a crash halfway through leave the system in the same consistent state?
-- **Shared state & concurrency:** If components do not need the same mutable state, does each have its own? If they do share state, is there only a single writer enforced by structure?
+- **Type system discipline:** Are illegal values impossible to write? Is external data parsed once at ingestion? Are compiler or linter errors/warnings silenced (never allow `@ts-ignore`, `# noqa`, or compiler suppression without explicit justification)? Question unnecessary optionality, `unknown`, `any`, or cast-heavy code when a clearer type boundary should exist.
+- **Canonical reuse & layer discipline:** Keep logic in the canonical layer. Feature logic must not leak into shared paths or APIs. Always reuse existing canonical utilities/helpers rather than introducing bespoke near-duplicates.
+- **Idempotency & state atomicity:** Are state-mutating operations idempotent? If related updates occur, are they structured atomically rather than leaving state half-applied?
+- **Shared state & concurrency:** If components do not need the same mutable state, does each have its own? If they do share state, is there only a single writer enforced by structure? Flag unnecessary sequential async operations when independent tasks can execute cleanly in parallel.
 - Are dependencies flowing in the right direction (no circular dependencies)?
 - Is the abstraction level appropriate (not over-engineered, not too coupled)?
 
@@ -94,6 +101,14 @@ Small, focused changes are easier to review, faster to merge, and safer to deplo
 ~300 lines changed   → Acceptable if it's a single logical change.
 ~1000 lines changed  → Too large. Split it.
 ```
+
+### File-Growth Boundary Rule (The 1,000-Line Threshold)
+
+In addition to PR diff size, monitor target file size:
+
+- **Do not let a PR push a file from under 1k lines to over 1k lines without a very strong reason.**
+- Treat this as an immediate code-quality smell. Prefer extracting helpers, subcomponents, modules, or local abstractions instead of letting a file sprawl past 1,000 lines.
+- If the diff crosses that threshold, explicitly request that the file be decomposed before or alongside the change.
 
 **What counts as "one change":** A single self-contained modification that addresses one thing, includes related tests, and keeps the system functional after submission. One part of a feature — not the whole feature.
 
@@ -170,6 +185,18 @@ Label every comment with its severity so the author knows what's required vs opt
 | **FYI** | Informational only | No action needed — context for future reference |
 
 This prevents authors from treating all feedback as mandatory and wasting time on optional suggestions.
+
+#### Presumptive Blockers
+
+Do not approve merely because behavior seems correct. Treat these conditions as presumptive blockers (requiring changes or explicit senior justification):
+
+1. **Missed Structural Simplification ("Code Judo"):** The PR preserves large amounts of incidental complexity when a visible re-framing would delete whole branches, helpers, or states.
+2. **File Size Explosion:** The PR pushes a file from under 1,000 lines to over 1,000 lines without decomposing it first.
+3. **Ad-Hoc Spaghetti Branching:** The PR introduces one-off conditionals, boolean flags, or scattered special cases bolted onto unrelated flows instead of dedicated abstractions.
+4. **Boundary & Layer Leaks:** Feature-specific logic leaks into shared modules, or implementation details leak through public APIs.
+5. **Canonical Helper Duplication:** Bespoke logic is introduced where a canonical codebase utility or standard library function already exists.
+6. **Thin Wrappers & Generic Magic:** New identity wrappers, pass-through layers, or cast-heavy contracts (`any`, unnecessary `unknown`, loose shapes) that add indirection without buying clarity.
+7. **Unnecessary Sequential Orchestration & Non-Atomic State:** Independent async operations serialized without reason, or partial-update logic that leaves state half-applied on failure.
 
 ### Step 5: Verify the Verification
 
@@ -306,10 +333,13 @@ Part of code review is dependency review:
 - [ ] No unbounded operations
 - [ ] Pagination on list endpoints
 
-### Quality Gates (Automated Metrics)
+### Quality Gates & Structural Invariants
 - [ ] `risk-gate`: All functions evaluated have CRAP < 10 (split or tested appropriately)
 - [ ] `clone-check`: Zero duplicate code blocks with structural similarity >= 0.8
 - [ ] `mutant-gate`: Zero surviving mutants on changed units (mutation testing passes)
+- [ ] `file-size`: No modified file crosses the 1,000-line mark without decomposition
+- [ ] `spaghetti-check`: No ad-hoc special-case conditionals bolted onto existing shared paths
+- [ ] `simplicity`: Complexity deleted rather than rearranged (no thin pass-through wrappers)
 
 ### Verification
 - [ ] Tests pass
@@ -339,8 +369,11 @@ Part of code review is dependency review:
 ## Red Flags
 
 - PRs merged without any review
-- Review that only checks if tests pass (ignoring other axes)
+- Review that only checks if tests pass (ignoring architecture, spaghetti growth, and maintainability)
 - "LGTM" without evidence of actual review
+- Pushing a file over 1,000 lines without decomposing it first
+- Bolting "weird if statements in random places" to solve a local edge case
+- Refactoring that moves lines around or adds thin wrappers without reducing cognitive complexity
 - Security-sensitive changes without security-focused review
 - Large PRs that are "too big to review properly" (split them)
 - No regression tests with bug fix PRs

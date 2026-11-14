@@ -16,7 +16,8 @@ This skill establishes the engineering standards and operational rules that ensu
 4. **Vertical Slices (Tracer Bullets)**: Avoid horizontal slicing (writing all tests upfront before any implementation). Instead, implement vertically in small increments: one seam, one failing test, one minimal implementation, repeat.
 5. **System-Boundary Mocking Only**: Mock only external boundaries outside your control (payment gateways, third-party APIs, time/randomness, network). Never mock internal collaborators, helper classes, or modules you own.
 6. **No Tautological Tests**: Expected values must originate from an independent source of truth (specifications, fixtures, known literals), never by recomputing the logic identical to the code under test.
-7. **Decouple Refactoring from the Red-Green Loop**: The loop is strictly Red → Green. Code cleanup and structural refactoring are deferred to the review stage (e.g., via the `code-review` skill).
+7. **Clean the Scaffolding ("Then Make it Right")**: While the inner loop is Red → Green (minimal code to pass), never allow minimal Green code to harden into ad-hoc conditional spaghetti across slices. Transition to the `refactoring` skill to eliminate temporary flags, enforce quality gates, and seek radical simplification before proceeding.
+8. **File Growth Ceiling**: Guard against vertical slices bloating target files past 1,000 lines. Decompose early rather than creating monolithic God-classes.
 
 ### When to Use This Skill
 
@@ -55,9 +56,10 @@ flowchart TD
    - Re-run the test to confirm it turns green.
 4. **Iterate Vertically**:
    - Repeat the cycle with the next test case or edge case.
+   - Clean up temporary scaffolding and ad-hoc flags before starting the next slice so spaghetti does not accumulate.
    - Each cycle builds directly on lessons learned from the previous cycle.
-5. **Post-Loop Review**:
-   - Clean up style and structure during the dedicated review phase rather than mutating the red-green cycle.
+5. **Post-Loop Review & Refactoring**:
+   - Apply the `refactoring` skill to enforce quality gates (`risk-gate`, `clone-check`, `mutant-gate`, `simplification-gate`), eliminate thin wrappers, and ensure the code structure feels inevitable.
 
 ---
 

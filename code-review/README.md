@@ -14,9 +14,11 @@ Perfect code does not exist; software development is an iterative discipline of 
 ### Core Principles
 1. **Zero Unreviewed Merges**: Every change undergoes review—no exceptions.
 2. **Review Tests First**: Tests communicate intent, boundary assumptions, and coverage before implementation details are scrutinized.
-3. **Change Sizing Discipline**: Keep changes between 100 and 300 lines. Changes exceeding 1,000 lines must be split into logical stacks or slices.
-4. **Honesty & Precision**: Avoid sycophancy or rubber-stamping ("LGTM"). Quantify risks and label every comment with standardized severity tags.
-5. **Dead Code Hygiene**: Refactorings must identify and clean up orphaned functions, variables, and shim layers.
+3. **Change Sizing & File Boundaries**: Keep PR diffs between 100 and 300 lines (split >1,000 line changes). Never let a PR push a target file from under 1,000 lines to over 1,000 lines without decomposing it first.
+4. **Structural Simplification ("Code Judo")**: Actively seek reframings that delete entire branches, helpers, or layers. Reject refactorings that merely shuffle complexity around or introduce thin pass-through wrappers.
+5. **Anti-Spaghetti Discipline**: Ad-hoc conditionals and one-off boolean flags bolted onto shared paths are design defects, not minor nits.
+6. **Honesty & Precision**: Avoid sycophancy or rubber-stamping ("LGTM"). Quantify risks and label every comment with standardized severity tags.
+7. **Dead Code Hygiene**: Refactorings must identify and clean up orphaned functions, variables, and shim layers.
 
 ### When to Use
 - **Pull Request Reviews**: Evaluating PRs authored by teammates, contributors, or automated agents.
@@ -56,12 +58,12 @@ To overcome model blind spots, multi-agent systems leverage independent LLMs:
 | Axis | Focus Questions | Red Flags |
 | :--- | :--- | :--- |
 | **1. Correctness** | Does the code satisfy the spec? Are edge cases (null, empty, bounds) and error paths handled? Are state machines valid? | Off-by-one errors, unhandled exceptions, race conditions, tests asserting mocks rather than behavior. |
-| **2. Readability & Simplicity** | Can a new engineer understand this without explanation? Is it minimal? Could 200 lines be written in 50? | Nested ternaries, deep callback pyramids, premature generalizations, no-op `_unused` variables. |
-| **3. Architecture** | Does the change preserve module boundaries? Do dependencies flow unidirectionally? Does it reuse existing patterns? | Circular dependencies, tight coupling, leaky abstractions, bypassing existing shared utilities. |
+| **2. Readability & Simplicity** | Can a new engineer understand this without explanation? Is it minimal? Can complexity be deleted via "code judo"? | Nested ternaries, deep callback pyramids, premature generalizations, no-op `_unused` variables, thin pass-through wrappers. |
+| **3. Architecture** | Does the change preserve module boundaries? Does it reuse canonical utilities? Is state updated atomically? | Circular dependencies, tight coupling, ad-hoc spaghetti branching, duplicate bespoke helpers, file sprawl crossing 1,000 lines. |
 | **4. Security** | Is input validated and sanitized at boundaries? Are secrets exposed? Are queries parameterized? Are auth checks verified? | String-interpolated SQL/shell commands, unescaped HTML/XSS, secrets committed to logs or code. |
-| **5. Performance** | Are database and network queries bounded? Are asynchronous APIs used properly? Are memory hot paths kept light? | N+1 queries, unindexed filters, unbounded `SELECT *` operations, missing pagination, unnecessary UI re-renders. |
+| **5. Performance** | Are database and network queries bounded? Are asynchronous APIs used properly? Are memory hot paths kept light? | N+1 queries, unindexed filters, unbounded `SELECT *` operations, missing pagination, unnecessary sequential serialization. |
 
-### Severity Taxonomy
+### Severity Taxonomy & Presumptive Blockers
 
 Review feedback must be prefixed with standardized severity indicators:
 
@@ -72,6 +74,13 @@ Review feedback must be prefixed with standardized severity indicators:
 | **`Nit:`** | **Minor / Polish** | Optional. Author may address or ignore (e.g., formatting preference, minor typo in comment). |
 | **`Optional:`** / **`Consider:`** | **Suggestion** | Non-blocking recommendation for future optimization or alternative design. |
 | **`FYI:`** | **Informational** | Contextual note; no code action required. |
+
+> **Presumptive Blockers:**
+> Treat the following as presumptive blockers:
+> - Pushing any file from <1,000 to >1,000 lines without prior decomposition.
+> - Adding ad-hoc branching/special-case logic into shared code paths instead of dedicated abstractions.
+> - Preserving incidental complexity when a clear "code judo" simplification is visible.
+> - Duplicating canonical helpers or adding thin wrappers that provide zero value.
 
 ---
 
