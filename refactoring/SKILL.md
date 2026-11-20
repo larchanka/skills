@@ -2,7 +2,7 @@
 name: refactoring
 description: "Executes the 'Then Make it Right' discipline: pins behavior, eliminates duplication, enforces CRAP < 10, runs mutation gates, deletes accidental complexity ('code judo'), and improves architecture without altering observable behavior."
 metadata:
-   version: 1.1.0
+   version: 1.2.0
 ---
 
 # Refactoring ("Then Make it Right")
@@ -56,6 +56,15 @@ Execute the corresponding native CLI tool for the project being refactored:
 | **Rust** | `cargo clippy -- -D clippy::cognitive_complexity` | `npx jscpd --threshold 80 src/` | `cargo mutants` |
 | **Python** | `radon cc -s -n B .` or `flake8 --max-complexity 10` | `npx jscpd --threshold 80 .` | `mutmut run` |
 | **Java / JVM** | Checkstyle `CyclomaticComplexity` or Sonar | `npx jscpd --threshold 80 src/` | `mvn org.pitest:pitest-maven:mutationCoverage` |
+
+### Quality Gate Execution (No Agentic Loops for Chains)
+When running tests and quality gates (`risk-gate`, `clone-check`, `mutant-gate`):
+- Do **NOT** invoke individual tools in separate turns of an agentic loop.
+- For simple checks, chain the commands using `&&`:
+  ```bash
+  npm test && npx eslint --rule 'complexity: ["error", 10]' && npx jscpd --threshold 80 src/
+  ```
+- For multi-gate verification or aggregated reporting, write a temporary runner script (Bash or Python) that executes the test suite and quality gates in sequence, checks exit codes, and prints a consolidated summary in a single tool call.
 
 ---
 

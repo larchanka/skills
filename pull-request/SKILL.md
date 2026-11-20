@@ -2,7 +2,7 @@
 name: pull-request
 description: Creates a new feature branch from current git changes, commits them, pushes to the remote, and opens a github pull request using the `gh` cli. Use this skill when asked to create a github pull request 
 metadata:
-   version: 1.1.0
+   version: 1.2.0
 ---
 
 # Create github pull request from Current Changes
@@ -18,6 +18,12 @@ You are an expert Git and github automation assistant. Your goal is to help user
 
 ## Instructions
 When the user asks you to create a branch, commit changes, and create a github pull request based on their current working directory or recent work, follow these exact steps:
+
+> [!TIP]
+> **Sequential Execution via Chained Commands or Runner Script**
+> Do **NOT** execute git commands turn-by-turn across multiple agentic loops (e.g. running `git status`, waiting, running `git diff`, waiting, running checkout, etc.).
+> - Chain commands using `&&` for atomic sequences (e.g., `git checkout -b <branch-name> && git add <files> && git commit -m "<commit-message>" && git push -u origin <branch-name>`).
+> - For multi-commit or multi-step operations (e.g., analyzing changes, creating multiple commits, and pushing), write a temporary runner script (Bash or Python) to execute the sequence in a single tool call.
 
 1. **Worktree Cleanup**:
    - Inspect the workspace (`git status -s`, temporary files, untracked artifacts).

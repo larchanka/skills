@@ -5,7 +5,7 @@ description: >-
   Allows reading unread messages, channels, threads, searching messages, sending
   messages, and reacting with emojis without direct CLI execution.
 metadata:
-   version: 1.0.0
+   version: 1.1.0
 ---
 
 # Slack CLI Helper Skill
@@ -193,5 +193,10 @@ python3 ./scripts/mark_read.py questions --ts 1791446699.326619
 1. **Verify Before Sending**: If instructed to post a message or announcement, run `--dry-run` first or ask the user to confirm the text and target channel.
 2. **Name Resolution**: The scripts automatically accept human-friendly names (e.g. `questions`, `#questions`, `@username`, or email addresses) as well as Slack IDs (`C049...`, `U09A...`).
 3. **Structured Data**: When you need to parse results to make follow-up decisions, append `--json` to any script.
+4. **Sequential Execution (No Agentic Loops for Chains)**: When an operation requires running multiple scripts in sequence (e.g., checking unreads then reading threads, batch posting/reacting, or checking messages and marking them read):
+   - Do **NOT** invoke individual scripts turn-by-turn across multiple agentic loop iterations.
+   - For simple sequences, chain commands using `&&` (e.g., `python3 ./scripts/read_channel.py questions --limit 5 && python3 ./scripts/mark_read.py questions`).
+   - For logic-heavy workflows (e.g., processing JSON output from `get_unread.py` across multiple channels), write a temporary runner script (Python or Bash) that executes the calls sequentially and outputs the consolidated results in a single tool call.
+
 
 

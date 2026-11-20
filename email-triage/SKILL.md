@@ -6,7 +6,7 @@ description: >-
   thread to an isolated sub-agent for classification and state management, and
   safely creates draft replies and applies triage labels without raw CLI execution.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Email Triage Skill
@@ -122,6 +122,7 @@ Mandatory Rules:
 1. NEVER run raw `gog` commands directly. ONLY use scripts in `./scripts/`.
 2. NEVER send emails. Only create drafts if a reply is warranted.
 3. For spam, use `--trash` (safe delete to Gmail Trash). NEVER use `--delete` unless explicitly authorized with `--force`.
+4. If executing multiple scripts in sequence (e.g. applying triage and creating a draft), chain them with `&&` or write a runner script rather than executing across multiple agent loop turns.
 
 Steps to execute:
 1. Fetch the thread details:
@@ -215,3 +216,4 @@ Inspects existing labels and sets up standard triage labels idempotently.
 2. **Safe Deletion**: Unwanted or spam messages are moved to Trash via `--trash`. Permanent deletion (`--delete`) requires explicit `--force`.
 3. **Simulation via Dry-Run**: All mutating scripts support `--dry-run` (`-n`) to preview actions safely.
 4. **Clean Content Extraction**: Text extraction strips tracking web bugs (1x1 pixels), CSS styling, script tags, and disclaimers, protecting token context from inflation.
+5. **Sequential Execution (No Agentic Loops for Chains)**: When processing multiple threads, scanning across accounts, or executing multi-step triage actions (e.g., read $\to$ classify $\to$ apply triage $\to$ draft reply), avoid calling individual scripts turn-by-turn across multiple agentic loop iterations. Chain simple commands using `&&`, or write a temporary runner script (Python or Bash) that executes the sequence and returns the consolidated results in a single tool call.

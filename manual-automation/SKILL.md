@@ -2,7 +2,7 @@
 name: manual-automation
 description: Manual browser testing and automation using Chrome DevTools MCP server. Handles port management, app launch, browser automation, login, and end-to-end testing.
 metadata:
-   version: 1.0.0
+   version: 1.1.0
 ---
 
 # Manual Browser Automation
@@ -72,7 +72,14 @@ Available MCP tool categories:
 - Use `evaluate_script` for custom assertions
 - Run Lighthouse audits for performance and accessibility checks
 
-### 6. Cleanup
+### 6. Sequential Execution & Scripting (No Agentic Loops for Chains)
+
+When executing multi-step setup, test assertions, or teardown sequences:
+- Do **NOT** run multi-step terminal commands or verification steps turn-by-turn across multiple agentic loop iterations.
+- **Shell setup & teardown**: When managing ports, launching servers, or polling health checks, chain commands using `&&` or write a temporary runner script (Bash or Python) that executes the sequence in a single call.
+- **Browser interactions & assertions**: For multi-step DOM validations or sequential page actions, write a consolidated test script or use `evaluate_script` to execute the sequence in one go rather than issuing individual round-trip micro-tool calls.
+
+### 7. Cleanup
 
 **After testing completion:**
 - Close browser pages/tabs

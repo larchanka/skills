@@ -2,7 +2,7 @@
 name: codebase-context-generator
 description: Generates comprehensive AI context, AGENTS.md, and structured documentation in a context/ directory for any brownfield codebase using Tree-sitter AST extraction, dependency analysis, predefined python scripts, and orchestrated subagents.
 metadata:
-  version: 1.0.0
+  version: 1.1.0
 ---
 
 # Codebase Context Generator
@@ -40,6 +40,20 @@ flowchart TD
 ### Phase 1: Deterministic AST & Dependency Extraction
 
 Run the predefined Python helper scripts to scan the codebase using Tree-sitter and build the structural manifests.
+
+> [!TIP]
+> **Sequential Execution via Runner Script or Chained Commands**
+> Do **NOT** execute multi-script pipelines in separate turns of an agentic loop. When running a sequence of scripts or tools in a chain, execute them sequentially in a single tool call:
+> - For simple sequences, chain commands with `&&`:
+>   ```bash
+>   python3 codebase-context-generator/scripts/ast_scanner.py --root <target-repo-path> --summary && \
+>   python3 codebase-context-generator/scripts/dependency_graph.py --manifest <target-repo-path>/.context_cache/ast_manifest.json && \
+>   python3 codebase-context-generator/scripts/symbol_graph.py \
+>     --manifest <target-repo-path>/.context_cache/ast_manifest.json \
+>     --save-graph <target-repo-path>/.context_cache/symbol_graph.json \
+>     --export-signatures <target-repo-path>/context/signatures.md
+>   ```
+> - For multi-step logic or conditional processing, write a temporary runner script (Python or Bash) to execute the sequence and return aggregated results in one run.
 
 ```bash
 # 1. Run Tree-sitter AST scanner across target codebase
