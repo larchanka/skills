@@ -7,6 +7,7 @@ Allows AI agents to quickly query signatures, argument types, callers, and calle
 
 import argparse
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -50,6 +51,8 @@ def build_symbol_graph(manifest: Dict[str, Any]) -> Dict[str, Any]:
                 "callers": [],
             }
             name_to_ids[fn_name].append(sym_id)
+            if "." in fn_name:
+                name_to_ids[fn_name.split(".")[-1]].append(sym_id)
 
         # 2. Classes and their methods
         for cls in file_syms.get("classes", []):
@@ -110,12 +113,29 @@ def build_symbol_graph(manifest: Dict[str, Any]) -> Dict[str, Any]:
     # Resolve cross-reference calls
     for sym_id, sym_data in symbols.items():
         for callee_raw in sym_data.get("callees", []):
-            callee_name = callee_raw.split(".")[-1]
-            matches = name_to_ids.get(callee_raw) or name_to_ids.get(callee_name)
+            callee_clean = re.sub(r"<.*?>", "", callee_raw).rstrip("()").strip()
+            callee_name = callee_clean.split(".")[-1]
+            matches = name_to_ids.get(callee_clean) or name_to_ids.get(callee_name)
             if matches:
                 for target_id in matches:
                     if target_id != sym_id and sym_id not in symbols[target_id]["callers"]:
                         symbols[target_id]["callers"].append(sym_id)
+
+    # Resolve module-level / file-level calls
+    for f_entry in files_data:
+        fpath = f_entry.get("path", "")
+        file_syms = f_entry.get("symbols", {})
+        file_callees = file_syms.get("callees", [])
+        if file_callees:
+            top_id = f"{fpath}::<module>"
+            for callee_raw in file_callees:
+                callee_clean = re.sub(r"<.*?>", "", callee_raw).rstrip("()").strip()
+                callee_name = callee_clean.split(".")[-1]
+                matches = name_to_ids.get(callee_clean) or name_to_ids.get(callee_name)
+                if matches:
+                    for target_id in matches:
+                        if target_id != top_id and top_id not in symbols[target_id]["callers"]:
+                            symbols[target_id]["callers"].append(top_id)
 
     return {
         "total_symbols": len(symbols),

@@ -16,6 +16,7 @@ from common import (
 )
 from ast_scanner import (
     extract_python_ast,
+    extract_regex_symbols,
     extract_tree_sitter_symbols,
     scan_codebase,
 )
@@ -57,6 +58,56 @@ def calculate_hash(data: bytes) -> str:
         self.assertEqual(fn["name"], "calculate_hash")
 
         self.assertEqual(len(symbols["imports"]), 2)
+
+    def test_python_ast_module_callees(self):
+        py_code = b'''
+def run():
+    pass
+
+if __name__ == "__main__":
+    run()
+'''
+        symbols = extract_python_ast(py_code, Path("app.py"))
+        self.assertIn("run", symbols.get("callees", []))
+
+    def test_regex_fallback_symbol_and_callee_extraction(self):
+        ts_code = b'''
+import { helper } from "./helper";
+
+export interface BotOptions {
+    token: string;
+}
+
+export class BotHandler {
+    public start(opts: BotOptions): void {
+        helper();
+        this.run();
+    }
+    public run(): void {
+        console.log("running");
+    }
+}
+
+export const execute = async () => {
+    const handler = new BotHandler();
+    handler.start({ token: "abc" });
+};
+'''
+        symbols = extract_regex_symbols(ts_code, "typescript")
+        self.assertEqual(len(symbols["classes"]), 1)
+        self.assertEqual(symbols["classes"][0]["name"], "BotHandler")
+        self.assertEqual(len(symbols["classes"][0]["methods"]), 2)
+        start_method = symbols["classes"][0]["methods"][0]
+        self.assertEqual(start_method["name"], "start")
+        self.assertIn("helper", start_method["callees"])
+        self.assertIn("run", start_method["callees"])
+
+        self.assertEqual(len(symbols["interfaces_and_types"]), 1)
+        self.assertEqual(symbols["interfaces_and_types"][0]["name"], "BotOptions")
+
+        self.assertTrue(any(f["name"] == "execute" for f in symbols["functions"]))
+        exec_fn = [f for f in symbols["functions"] if f["name"] == "execute"][0]
+        self.assertIn("start", exec_fn["callees"])
 
     def test_tree_sitter_rust_extraction(self):
         parser = get_parser_for_language("rust")

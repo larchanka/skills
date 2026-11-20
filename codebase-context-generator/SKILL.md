@@ -2,7 +2,7 @@
 name: codebase-context-generator
 description: Generates comprehensive AI context, AGENTS.md, and structured documentation in a context/ directory for any brownfield codebase using Tree-sitter AST extraction, dependency analysis, predefined python scripts, and orchestrated subagents.
 metadata:
-  version: 1.1.0
+  version: 1.2.0
 ---
 
 # Codebase Context Generator

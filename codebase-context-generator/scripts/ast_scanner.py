@@ -39,6 +39,7 @@ def extract_python_ast(code_bytes: bytes, file_path: Path) -> Dict[str, Any]:
         "interfaces_and_types": [],
         "imports": [],
         "exports": [],
+        "callees": [],
     }
     try:
         source_text = code_bytes.decode("utf-8")
@@ -167,6 +168,18 @@ def extract_python_ast(code_bytes: bytes, file_path: Path) -> Dict[str, Any]:
                         "line": node.lineno,
                     })
 
+    # Module-level calls (calls outside functions/classes)
+    mod_calls = []
+    for node in parsed.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            for c_node in ast.walk(node):
+                if isinstance(c_node, ast.Call):
+                    try:
+                        mod_calls.append(ast.unparse(c_node.func))
+                    except Exception:
+                        pass
+    symbols["callees"] = sorted(list(set(mod_calls)))
+
     return symbols
 
 
@@ -188,6 +201,7 @@ def extract_tree_sitter_symbols(
         "interfaces_and_types": [],
         "imports": [],
         "exports": [],
+        "callees": [],
     }
 
     try:
@@ -201,9 +215,12 @@ def extract_tree_sitter_symbols(
     def find_callees(node: Any) -> List[str]:
         calls = []
         def _rec(n):
-            if n.type == "call_expression":
-                # TS/JS/Go/Rust call expressions
-                fn_node = n.child_by_field_name("function")
+            if n.type in ("call_expression", "method_invocation", "object_creation_expression"):
+                fn_node = (
+                    n.child_by_field_name("function")
+                    or n.child_by_field_name("name")
+                    or n.child_by_field_name("type")
+                )
                 if fn_node:
                     calls.append(extract_node_text(fn_node, code_bytes))
             for c in n.children:
@@ -249,6 +266,42 @@ def extract_tree_sitter_symbols(
                     "line_start": node.start_point.row + 1,
                     "line_end": node.end_point.row + 1,
                 })
+            elif ntype == "method_definition":
+                name_node = node.child_by_field_name("name")
+                name = extract_node_text(name_node, code_bytes) if name_node else "Anonymous"
+                params_node = node.child_by_field_name("parameters")
+                params = extract_node_text(params_node, code_bytes) if params_node else "()"
+                ret_node = node.child_by_field_name("return_type")
+                ret = extract_node_text(ret_node, code_bytes) if ret_node else ""
+                sig = f"{name}{params}" + (f" {ret}" if ret else "")
+                callees = find_callees(node)
+
+                symbols["functions"].append({
+                    "name": name,
+                    "signature": sig,
+                    "callees": callees,
+                    "line_start": node.start_point.row + 1,
+                    "line_end": node.end_point.row + 1,
+                })
+            elif ntype == "variable_declarator":
+                val_node = node.child_by_field_name("value")
+                if val_node and val_node.type in ("arrow_function", "function_expression"):
+                    name_node = node.child_by_field_name("name")
+                    name = extract_node_text(name_node, code_bytes) if name_node else "Anonymous"
+                    params_node = val_node.child_by_field_name("parameters")
+                    params = extract_node_text(params_node, code_bytes) if params_node else "()"
+                    ret_node = val_node.child_by_field_name("return_type")
+                    ret = extract_node_text(ret_node, code_bytes) if ret_node else ""
+                    sig = f"{name}{params}" + (f" {ret}" if ret else "")
+                    callees = find_callees(val_node)
+
+                    symbols["functions"].append({
+                        "name": name,
+                        "signature": sig,
+                        "callees": callees,
+                        "line_start": node.start_point.row + 1,
+                        "line_end": node.end_point.row + 1,
+                    })
             elif ntype == "import_statement":
                 raw = extract_node_text(node, code_bytes)
                 source_node = node.child_by_field_name("source")
@@ -360,8 +413,16 @@ def extract_tree_sitter_symbols(
             elif ntype == "method_declaration":
                 name_node = node.child_by_field_name("name")
                 name = extract_node_text(name_node, code_bytes) if name_node else "Anonymous"
+                params_node = node.child_by_field_name("parameters")
+                params = extract_node_text(params_node, code_bytes) if params_node else "()"
+                type_node = node.child_by_field_name("type")
+                ret = extract_node_text(type_node, code_bytes) if type_node else ""
+                sig = f"{name}{params}" + (f" -> {ret}" if ret else "")
+                callees = find_callees(node)
                 symbols["functions"].append({
                     "name": name,
+                    "signature": sig,
+                    "callees": callees,
                     "line_start": node.start_point.row + 1,
                     "line_end": node.end_point.row + 1,
                 })
@@ -387,28 +448,156 @@ def extract_regex_symbols(code_bytes: bytes, lang: str) -> Dict[str, Any]:
         "interfaces_and_types": [],
         "imports": [],
         "exports": [],
+        "callees": [],
     }
     text = code_bytes.decode("utf-8", "replace")
     lines = text.split("\n")
 
-    class_re = re.compile(r"^\s*(?:export\s+)?(?:public\s+|class\s+|struct\s+|interface\s+)([A-Za-z0-9_]+)")
-    func_re = re.compile(r"^\s*(?:export\s+)?(?:async\s+)?(?:def\s+|fn\s+|func\s+|function\s+)([A-Za-z0-9_]+)")
+    call_keywords = {
+        "if", "for", "while", "switch", "catch", "function", "class", "constructor",
+        "import", "export", "return", "throw", "typeof", "super", "new", "require",
+        "else", "try", "finally", "with", "yield", "await", "delete", "void", "in",
+        "instanceof", "type", "interface", "get", "set", "from", "as", "default", "case",
+        "let", "const", "var"
+    }
+    call_re = re.compile(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+
+    def extract_calls(code_text: str, current_name: Optional[str] = None) -> List[str]:
+        cleaned = re.sub(r"\"[^\"]*\"|\'[^\']*\'|\`[^\`]*\`|//.*|/\*[\s\S]*?\*/|#.*", "", code_text)
+        raw = call_re.findall(cleaned)
+        return sorted(list(set(c for c in raw if c not in call_keywords and c != current_name)))
+
+    class_re = re.compile(r"^\s*(?:export\s+)?(?:(?:public|private|protected|abstract|sealed|final|declare|static)\s+)*(class|struct|trait)\s+([A-Za-z0-9_]+)")
+    type_re = re.compile(r"^\s*(?:export\s+)?(?:(?:public|declare)\s+)*(interface|type|enum)\s+([A-Za-z0-9_]+)")
+    func_re = re.compile(r"^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:function|def|fn|func|sub)\s+([A-Za-z0-9_]+)\s*(\([^)]*\))?(?:\s*(?:->|:)\s*([^{:\n]+))?")
+    arrow_re = re.compile(r"^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s*)?(?:(\([^)]*\)|[A-Za-z0-9_]+))\s*(?::\s*([^{=\n]+))?\s*=>")
+    method_re = re.compile(r"^\s*(?:(?:public|private|protected|static|async|override|readonly|abstract)\s+)+([A-Za-z0-9_]+)\s*(\([^)]*\))(?:\s*(?:->|:)\s*([^{:\n]+))?")
+    bare_method_re = re.compile(r"^\s*(?:async\s+)?([A-Za-z0-9_]+)\s*(\([^)]*\))(?:\s*(?:->|:)\s*([^{:\n]+))?\s*\{")
     import_re = re.compile(r"^\s*(?:import\s+|from\s+|use\s+|require\()([^;\n]+)")
 
+    # 1. Track class scopes via brace tracking
+    active_class: Optional[Dict[str, Any]] = None
+    brace_depth = 0
+
     for idx, line in enumerate(lines, 1):
-        c_match = class_re.search(line)
-        if c_match:
-            symbols["classes"].append({"name": c_match.group(1), "line": idx})
-            continue
+        cleaned = re.sub(r"\"[^\"]*\"|\'[^\']*\'|\`[^\`]*\`|//.*|/\*[\s\S]*?\*/|#.*", "", line)
+        if not active_class:
+            cm = class_re.search(line)
+            if cm:
+                c_name = cm.group(2)
+                c_kind = cm.group(1)
+                active_class = {
+                    "name": c_name,
+                    "kind": c_kind,
+                    "line_start": idx,
+                    "methods": [],
+                }
+                brace_depth = cleaned.count("{") - cleaned.count("}")
+                symbols["classes"].append(active_class)
+        else:
+            brace_depth += cleaned.count("{") - cleaned.count("}")
+            if brace_depth <= 0:
+                active_class["line_end"] = idx
+                active_class = None
 
-        f_match = func_re.search(line)
-        if f_match:
-            symbols["functions"].append({"name": f_match.group(1), "line": idx})
-            continue
+    if active_class:
+        active_class["line_end"] = len(lines)
 
+    # 2. Extract types, imports, and collect all callable declarations
+    callable_decls = []
+
+    for idx, line in enumerate(lines, 1):
         i_match = import_re.search(line)
         if i_match:
             symbols["imports"].append({"raw": line.strip(), "source": i_match.group(1).strip()})
+
+        t_match = type_re.search(line)
+        if t_match:
+            symbols["interfaces_and_types"].append({
+                "name": t_match.group(2),
+                "kind": t_match.group(1),
+                "line": idx,
+            })
+            continue
+
+        if any(c["line_start"] == idx for c in symbols["classes"]):
+            continue
+
+        in_class = any(c["line_start"] <= idx <= c.get("line_end", len(lines)) for c in symbols["classes"])
+
+        m_match = method_re.search(line)
+        if m_match and m_match.group(1) not in call_keywords:
+            m_name = m_match.group(1)
+            args = m_match.group(2) or "()"
+            ret = f" -> {m_match.group(3).strip()}" if m_match.group(3) else ""
+            sig = f"{m_name}{args}{ret}"
+            callable_decls.append((idx, "method" if in_class else "func", m_name, sig))
+            continue
+
+        if in_class:
+            bm_match = bare_method_re.search(line)
+            if bm_match and bm_match.group(1) not in call_keywords:
+                m_name = bm_match.group(1)
+                args = bm_match.group(2) or "()"
+                ret = f" -> {bm_match.group(3).strip()}" if bm_match.group(3) else ""
+                sig = f"{m_name}{args}{ret}"
+                callable_decls.append((idx, "method", m_name, sig))
+                continue
+
+        f_match = func_re.search(line)
+        if f_match and f_match.group(1) not in call_keywords:
+            f_name = f_match.group(1)
+            args = f_match.group(2) or "()"
+            ret = f" -> {f_match.group(3).strip()}" if f_match.group(3) else ""
+            sig = f"{f_name}{args}{ret}"
+            callable_decls.append((idx, "method" if in_class else "func", f_name, sig))
+            continue
+
+        a_match = arrow_re.search(line)
+        if a_match and a_match.group(1) not in call_keywords:
+            a_name = a_match.group(1)
+            args = a_match.group(2) if a_match.group(2).startswith("(") else f"({a_match.group(2)})"
+            ret = f" -> {a_match.group(3).strip()}" if a_match.group(3) else ""
+            sig = f"{a_name}{args}{ret}"
+            callable_decls.append((idx, "func", a_name, sig))
+            continue
+
+    # 3. Compute function/method bodies and callees
+    callable_decls.sort(key=lambda d: d[0])
+    covered_lines = set()
+
+    for i, (line_num, kind, name, sig) in enumerate(callable_decls):
+        next_line = callable_decls[i + 1][0] if i + 1 < len(callable_decls) else len(lines) + 1
+        body_lines = lines[line_num - 1:next_line - 1]
+        for l_idx in range(line_num, next_line):
+            covered_lines.add(l_idx)
+        body_text = "\n".join(body_lines)
+        callees = extract_calls(body_text, current_name=name)
+
+        parent_class = None
+        for c in symbols["classes"]:
+            if c["line_start"] <= line_num <= c.get("line_end", len(lines)):
+                parent_class = c
+                break
+
+        if kind == "method" and parent_class:
+            parent_class["methods"].append({
+                "name": name,
+                "signature": sig,
+                "line": line_num,
+                "callees": callees,
+            })
+        else:
+            symbols["functions"].append({
+                "name": name,
+                "signature": sig,
+                "line_start": line_num,
+                "callees": callees,
+            })
+
+    uncovered_lines = [line for idx, line in enumerate(lines, 1) if idx not in covered_lines]
+    if uncovered_lines:
+        symbols["callees"] = extract_calls("\n".join(uncovered_lines))
 
     return symbols
 

@@ -100,6 +100,29 @@ class TestSymbolGraph(unittest.TestCase):
         self.assertIn("# Codebase Signatures & Symbol Index", md)
         self.assertIn("UserManager.create_user", md)
         self.assertIn("db_insert", md)
+        # Verify callers count is not 0 for called functions
+        self.assertIn("| `db_insert` | `db_insert(table: str, data: dict) -> None` | L5 | 1 |", md)
+        self.assertIn("| `send_welcome_email` | `send_welcome_email(email: str) -> bool` | L30 | 1 |", md)
+
+    def test_module_level_callers_and_short_names(self):
+        manifest = {
+            "files": [
+                {
+                    "path": "main.py",
+                    "symbols": {
+                        "functions": [
+                            {"name": "bootstrap", "signature": "bootstrap()", "line_start": 1, "callees": []}
+                        ],
+                        "classes": [],
+                        "callees": ["bootstrap"]
+                    }
+                }
+            ]
+        }
+        graph = build_symbol_graph(manifest)
+        sym = graph["symbols"]["main.py::bootstrap"]
+        self.assertIn("main.py::<module>", sym["callers"])
+        self.assertEqual(len(sym["callers"]), 1)
 
 
 if __name__ == "__main__":

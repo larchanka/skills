@@ -66,6 +66,10 @@ EXTENSION_TO_LANG: Dict[str, str] = {
     ".kt": "kotlin",
     ".kts": "kotlin",
     ".scala": "scala",
+    ".pl": "perl",
+    ".pm": "perl",
+    ".sh": "bash",
+    ".command": "bash",
 }
 
 # Mapping language name to tree-sitter python module and function candidates
