@@ -161,7 +161,11 @@ def export_signatures_markdown(graph: Dict[str, Any]) -> str:
 
     for fpath in sorted(by_file.keys()):
         file_syms = by_file[fpath]
-        lines.append(f"## [`{fpath}`](../{fpath})")
+        if "(" in fpath or ")" in fpath:
+            # Parentheses break naive markdown link parsers (and the verifier); emit a plain code-span header.
+            lines.append(f"## `{fpath}`")
+        else:
+            lines.append(f"## [`{fpath}`](../{fpath})")
         lines.append("")
 
         classes = [s for s in file_syms if s["kind"] == "class"]

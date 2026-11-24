@@ -104,6 +104,28 @@ class TestSymbolGraph(unittest.TestCase):
         self.assertIn("| `db_insert` | `db_insert(table: str, data: dict) -> None` | L5 | 1 |", md)
         self.assertIn("| `send_welcome_email` | `send_welcome_email(email: str) -> bool` | L30 | 1 |", md)
 
+    def test_export_signatures_markdown_handles_parentheses_in_paths(self):
+        # Next.js-style route groups like app/(root)/page.tsx break naive
+        # markdown link parsers: the header must be a plain code span, not a link.
+        manifest = {
+            "files": [
+                {
+                    "path": "app/(root)/page.tsx",
+                    "symbols": {
+                        "functions": [
+                            {"name": "Page", "signature": "Page()", "line_start": 1, "callees": []}
+                        ],
+                        "classes": [],
+                        "interfaces_and_types": []
+                    }
+                }
+            ]
+        }
+        graph = build_symbol_graph(manifest)
+        md = export_signatures_markdown(graph)
+        self.assertIn("## `app/(root)/page.tsx`", md)
+        self.assertNotIn("](../app/(root)/page.tsx)", md)
+
     def test_module_level_callers_and_short_names(self):
         manifest = {
             "files": [
